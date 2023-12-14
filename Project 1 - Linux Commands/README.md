@@ -38,3 +38,19 @@
 - `rm`  
    The is command is used to remove or delete a file from a directory.
   ![Alt text](Images/img_10.png)
+- `touch`  
+   This command is used to create an empty file on Linux. Alternatively, we can use vi/vim (a text editor) to create a file and then add some conntents
+  ![Alt text](Images/img_11.png)
+- `locate`  
+   The `locate` command is used to search for a file in the file directory. Using this command with the flag `-i` makes the search string not case sensitive, and it can also be used with wildcards such as `*` to make the search more dynamic. For example `sudo locate *.txt`
+  ![Alt text](Images/img_12.png)
+- `find`
+  This is very similar to the `locate` command. The `find` command is also used to search for a file in directory using different attributes such as -name, -d directory etc.
+  ![Alt text](Images/img_13.png)
+- `grep`  
+   The `grep` command or global regular expression command also helps in searching for files or contents of a directory. It can be used it several other commands such as `cat`, `ls` etc. It can be used to limit or streamline the output of our search to something more specific. It comes in very handy when going through large texts.  
+   For example, running the command `cat /etc/passwd` would list a lot of contents about users of the system. But with the `grep` command, it can be limited to a particular user with the following command `cat /etc/passwd | grep ubuntu`
+  ![Alt text](Images/img_14.png)
+- `df`  
+   This command is used to print useful information about the disk on the linux machine.
+  ![Alt text](Images/img_15.png)
