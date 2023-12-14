@@ -39,10 +39,10 @@
    The is command is used to remove or delete a file from a directory.
   ![Alt text](Images/img_10.png)
 - `touch`  
-   This command is used to create an empty file on Linux. Alternatively, we can use vi/vim (a text editor) to create a file and then add some conntents
+   This command is used to create an empty file on Linux. Alternatively, we can use vi/vim (a text editor) to create a file and then add some conntents  
   ![Alt text](Images/img_11.png)
 - `locate`  
-   The `locate` command is used to search for a file in the file directory. Using this command with the flag `-i` makes the search string not case sensitive, and it can also be used with wildcards such as `*` to make the search more dynamic. For example `sudo locate *.txt`
+   The `locate` command is used to search for a file in the file directory. Using this command with the flag `-i` makes the search string not case sensitive, and it can also be used with wildcards such as `*` to make the search more dynamic. For example `sudo locate *.txt`  
   ![Alt text](Images/img_12.png)
 - `find`
   This is very similar to the `locate` command. The `find` command is also used to search for a file in directory using different attributes such as -name, -d directory etc.
