@@ -89,7 +89,7 @@ To do this, we will following the steps below:
 - Create the domain directory using the following command `sudo mkdir /var/www/project_devops`.
 - Next, we change the ownership of the file from the root user to the current user using the following command `sudo chown -R $USER: $USER /var/www/project_devops`
   ![Alt text](Images/img_13.png)
-- The next step is creating a new configuration file in apache's `sites-available` directory using your favorite text editor `sudo vim /etc/apapche2/sites-available/project_devops.conf`. Copy and paste the lines of code below to the newly created config file
+- The next step is creating a new configuration file in apache's `sites-available` directory using your favorite text editor `sudo vim /etc/apapche2/sites-available/project_devops.conf`. Copy and paste the lines of code below to the newly created config file  
   ![Alt text](Images/img_14.png)
   Save the file and confirm it was saved in the right location
   ![Alt text](Images/img_15.png)
@@ -113,4 +113,4 @@ To do this, we will following the steps below:
   Test all is working by entering the public ip address from a browswer.
   ![Alt text](Images/img_17.png)
 
-#### And there you have it, our website template is un and running.
+#### And there you have it, our website template is up and running.
