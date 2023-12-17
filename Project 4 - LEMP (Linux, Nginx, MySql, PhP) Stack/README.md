@@ -35,7 +35,7 @@ I'll start by running the following commands:
 
   We've sucessfully installed our Nginx web server on Ubuntu.
 
-### Part 2 - Installing MySql Server
+### Part 2 - Installing MySQL Server
 
 Our web server is running and ready to host applications. However we need a database to store the application's data.  
 Still on the Ubuntu server, I'll run the following commands to install and configure MySql server:
@@ -71,4 +71,203 @@ Run the folling commands
 
   Now, let's configure Nginx to use PhP
 
-### Part 4 - Configuring Ngin to use PhP
+### Part 4 - Configuring Nginx to use PhP
+
+Just like we created Virutal Hosts in Apache, we will be creating something called Server Blocks in Nginx. These server blocks would enable a single Nginx web server host multiple web applications.  
+In this exercise we will be creating a server block to host our fictional domain `devops_projects`. Let's start by taking the following steps:
+
+- Create the domain's root directory
+
+  > `sudo mkdir /var/www/devops_projects`
+
+- Assign ownship of the newly created directory to the current non root user in charge of managing the web application.
+
+  > `sudo chowm -R $USER:$USER /var/www/devops_projects`
+
+- Create a custom confirguration file in the directory `/etc/nginx/sites-available/` using your favorite text editor
+
+  > `sudo vim /etc/nginx/sites-available/devops_projects`
+
+  copy and paste the code below into the newly created configuration file
+
+  > ```nginx
+  > #/etc/nginx/sites-available/devops_projects
+  >
+  > server {
+  >    listen 80;
+  >    server_name devops_projects www.devops_projects;
+  >    root /var/www/devops_projects;
+  >
+  >    index index.html index.htm index.php;
+  >
+  >    location / {
+  >      try_files $uri $uri/ =404;
+  >    }
+  >
+  >    location ~ \.php$ {
+  >     include snippets/fastcgi-php.conf;
+  >     fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+  >    }
+  >
+  >    location ~ /\.ht {
+  >     deny all;
+  >    }
+  >
+  > }
+  > ```
+
+  Below is a brief explanation on what each line of code does:
+
+  > ```nginx
+  > server {
+  >    listen 80;
+  >    server_name devops_projects www.devops_projects;
+  >    root /var/www/devops_projects;
+  > }
+  > ```
+
+  - `listen 80;`: The server listens on port 80, the default HTTP port. This can be changed to 8080 or 8888 for example if you want to run apache and nginx simultanously.
+  - `server_name devops_projects www.devops_projects;`: Specifies the server names for which this block will be active. Requests with the specified domain names will be handled by this server block.
+  - `root /var/www/devops_projects;`: Sets the root directory for the server. Requests will be served from this location.
+  - `index index.html index.htm index.php;`: Specifies the order in which Nginx should look for index files when a directory is requested. In this case, it looks for `index.html`, `index.htm`, and finally `index.php`.
+
+  > ```nginx
+  > location / {
+  >    try_files $uri $uri/ =404;
+  > }
+  > ```
+
+  - **Location Block for root directory** - Handles requests for the root directory ("/"). It uses try_files to attempt to serve existing files or directories, falling back to a 404 error if none are found.
+
+  > ```nginx
+  > location ~ \.php$ {
+  >   include snippets/fastcgi-php.conf;
+  >   fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+  > }
+  > ```
+
+  - Handles requests for files ending with ".php." It includes the `fastcgi-php.conf` file, which contains common FastCGI settings for PHP. It then passes the PHP requests to the PHP-FPM server running on the specified Unix socket (`unix:/var/run/php/php8.1-fpm.sock`).
+
+  > ```nginx
+  > location ~ /\.ht {
+  >   deny all;
+  > }
+  > ```
+
+  - **Location Block for .htaccess Files**: Blocks access to files starting with ".ht" to enhance security. This is a common practice to prevent unauthorized access to configuration files.
+
+- Activate this configuration file by linking it to the defualt Nginx's config file:
+
+  > `sudo ln -s /etc/nginx/sites-available/devops_projects /etc/nginx/sites-enabled/` > ![Alt text](Images/img_10.png)
+
+  The code above created a linked file from our new config file to the nginx's default config file.
+
+- Check our configuration files for errors:
+
+  > `$ sudo nginx -t`
+
+  You should get the message below if everything was done correctly.
+  ![Alt text](Images/img_11.png)
+
+- Now, we disable the default nginx host configured to listen at port 80
+
+  > `sudo unlink /etc/nginx/sites-enabled/default`
+
+- Finally, we restart the nginx server:
+  > `sudo systemctl reload nginx`
+
+To test this, we need to deploy a sample website to our doamin's (`devops_project`) root directory. Let's download a sample website from [www.tooplate.com](https://www.tooplate.com/) and test our domain.  
+ Run the following commands:
+
+- `cd /var/www/devops_projects`: This will navigate to the domain's directory
+- `wget https://templatemo.com/tm-zip-files-2020/templatemo_506_tinker.zip`: This will download the _Tinker Template_ from [www.tooplate.com](https://templatemo.com/tm-506-tinker)
+- `unzip templatemo_506_tinker.zip`: This extracts the files into a new directory named `templatemo_506_tinker`.
+- As nginx is looking for a file named `index.html or .php` in the `devops_projects` directory, we need to move the contents from `templatemo_506_tinker` to `devops_projects`.
+- `cp -R templatemo_506_tinker/* .`: This copys the content of `templatemo_506_tinker` to `devops_projects`.
+- Optionally, we can delete the `templatemo_506_tinker` directory and the downloaded zip file
+- `rm - rf templatemo_506_tinker/`
+- `rm templatemo_506_tinker.zip`
+
+Test all is working by entering the public ip address from a browswer.
+![Alt text](Images/img_17.png)
+
+**And there you have it, our website template is up and running**.
+
+### Part 5 - Testing PhP on Nginx
+
+At this point, we've sucessfully installed the follwowing:
+
+- [x] Linux (Ubuntu)
+- [x] Nginx Web Server
+- [x] MySql Database Server
+- [x] PhP
+
+However, we've not done a test to ensure PhP applications working. Let's do that now.
+
+- Using your favorite text editor, create a file called `info.php`.
+
+  > `vim /var/www/devops_projects/info.php`
+
+- Copy and paste the code below into the file.
+  > ```php
+  > <?php
+  >   phpinfo();
+  > ```
+
+![Alt text](Images/img_18.png)
+There you go. PhP is working as expected.  
+ _Remember to delete this file as it contains sensitive information about your server._
+
+### Part 6 - Reading data from MySQL using PhP
+
+In this exercise, we will be creating a database called `winter_db`, and then create a simple `to-do list` php application that reads data from the database. Let's go:
+
+- First, we connect to the `mysql` console using the root account.
+
+  > `sudo mysql -u root -p`
+
+  This should prompt you for your password.
+
+- Create the database using the following command:
+
+  > `CREATE DATABASE winter_db;`
+
+  To confirm, you can enter the code `SHOW DATABASES;`
+
+- Next, we will be creating a new user `snow` and grant the user full access to the database `winter_db`.
+  > CREATE USER 'snow'@'%' IDENTIFIED BY 'PassWord.1';
+- After creating the user, we need to grant the user full access to `winter_db`.
+
+  > `GRANT ALL PRIVILEGES on winter_db.\* TO 'snow'@'%';
+
+- Now, we exit the `mysql` console and log back in using the user `snow`:
+
+  > `mysql -u snow -p`
+
+  Enter your password then run the `SHOW DATABASES;` command to ensure the user has access to the `winter_db`
+
+- Now create a table called `todo_list` with the following command:
+
+  > ```sql
+  > CREATE TABLE winter_db.todo_list (
+  >      item_id INT AUTO_INCREMENT,
+  >      content VARCHAR(255),
+  >      PRIMARY KEY(item_id)
+  > );
+  > ```
+
+  To verify, run `SELECT * FROM winter_db.todo_list;` This should return an empty table as we don't have any data store yet. Let's do that shall we.
+
+- Log out of the `mysql` console and create a file called `data.sql` with the code below:
+  > -- data.sql
+  >
+  > ```sql
+  > INSERT INTO winter_db.todo_list (content) VALUES
+  > ('EAssess the current CI/CD pipeline for weaknesses and inefficiencies'),
+  > ('Integrate automated testing into the deployment process'),
+  > ('Implement blue-green deployment strategies for zero-downtime releases'),
+  > ('Explore opportunities for parallelizing build processes'),
+  > ('Enhance monitoring and logging in the CI/CD pipeline for better visibility');
+  > ```
+- Run the code below to automatically run the `data.sql` script.
+  > `mysql -u snow -p winter_db.todo_list < data.sql`

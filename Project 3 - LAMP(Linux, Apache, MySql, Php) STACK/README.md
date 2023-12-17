@@ -107,7 +107,7 @@ To do this, we will following the steps below:
   - As apache is looking for a file named `index.html or .php` in the `project_devops` directory, we need to move the contents from `templatemo_506_tinker` to `project_devops`.
   - `cp -R templatemo_506_tinker/* .`: This copys the content of `templatemo_506_tinker` to `project_devops`.
   - Optionally, we can delete the `templatemo_506_tinker` directory and the downloaded zip file
-  - `rm - rf templatemo_506_tinker`
+  - `rm - rf templatemo_506_tinker/`
   - `rm templatemo_506_tinker.zip`
 
   Test all is working by entering the public ip address from a browswer.
