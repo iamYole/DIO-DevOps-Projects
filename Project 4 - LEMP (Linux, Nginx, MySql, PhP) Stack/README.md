@@ -220,7 +220,7 @@ There you go. PhP is working as expected.
 
 ### Part 6 - Reading data from MySQL using PhP
 
-In this exercise, we will be creating a database called `winter_db`, and then create a simple `to-do list` php application that reads data from the database. Let's go:
+In this exercise, we will be creating a database called `winter_db`, and then create a simple `todo list` php application that reads data from the database. Let's go:
 
 - First, we connect to the `mysql` console using the root account.
 
@@ -228,46 +228,94 @@ In this exercise, we will be creating a database called `winter_db`, and then cr
 
   This should prompt you for your password.
 
-- Create the database using the following command:
+- Next, we will be creating a new user `snow` and grant the user access to create a database.
 
-  > `CREATE DATABASE winter_db;`
+  > CREATE USER 'snow'@'%' IDENTIFIED WITH mysql_native_password BY 'PassWord.1';
 
-  To confirm, you can enter the code `SHOW DATABASES;`
+- After creating the user, we need to grant the user CREATE access.
 
-- Next, we will be creating a new user `snow` and grant the user full access to the database `winter_db`.
-  > CREATE USER 'snow'@'%' IDENTIFIED BY 'PassWord.1';
-- After creating the user, we need to grant the user full access to `winter_db`.
-
-  > `GRANT ALL PRIVILEGES on winter_db.\* TO 'snow'@'%';
+  > ```sql
+  > `GRANT CREATE ON *.* TO 'snow'@'%';
+  > ```
 
 - Now, we exit the `mysql` console and log back in using the user `snow`:
 
   > `mysql -u snow -p`
 
-  Enter your password then run the `SHOW DATABASES;` command to ensure the user has access to the `winter_db`
+- Create the database using the following command:
 
-- Now create a table called `todo_list` with the following command:
+  > `CREATE DATABASE winter_db;`
+
+  To confirm, you can run the code `SHOW DATABASES;`
+
+- Now exit the console, then create a file names `data.sql` with the code below:
 
   > ```sql
-  > CREATE TABLE winter_db.todo_list (
-  >      item_id INT AUTO_INCREMENT,
-  >      content VARCHAR(255),
-  >      PRIMARY KEY(item_id)
-  > );
-  > ```
-
-  To verify, run `SELECT * FROM winter_db.todo_list;` This should return an empty table as we don't have any data store yet. Let's do that shall we.
-
-- Log out of the `mysql` console and create a file called `data.sql` with the code below:
-  > -- data.sql
+  > DROP TABLE IF EXISTS `todo_list`;
   >
-  > ```sql
-  > INSERT INTO winter_db.todo_list (content) VALUES
+  > CREATE TABLE `todo_list` (
+  >      ITEM_ID INT AUTO_INCREMENT,
+  >      CONTENT VARCHAR(255) NOT NULL,
+  >      PRIMARY KEY(ITEM_ID)
+  > );
+  >
+  > INSERT INTO `todo_list` (CONTENT) VALUES
   > ('EAssess the current CI/CD pipeline for weaknesses and inefficiencies'),
   > ('Integrate automated testing into the deployment process'),
   > ('Implement blue-green deployment strategies for zero-downtime releases'),
   > ('Explore opportunities for parallelizing build processes'),
   > ('Enhance monitoring and logging in the CI/CD pipeline for better visibility');
   > ```
-- Run the code below to automatically run the `data.sql` script.
+  >
+  > Save the file and close the text exitor.
+
+- Run the code below to automatically create the table and import the data using the `data.sql` script.
+
   > `mysql -u snow -p winter_db.todo_list < data.sql`
+
+- To verify, log back into the `mysql` console the query below:
+
+  > ```sql
+  > USE winter_db;
+  >
+  > SELECT * FROM todo_list;
+  > ```
+  >
+  > ![Alt text](Images/img_19.png)
+  > We've created our databse `winter_db`, and a table withn the database `todo_list`. We've also populated the table with some data.
+
+**Now, Let's read this data from a PhP application**.
+
+- We start by creating the .php file in the domain's root director `/var/www/devops_projects`
+
+  > ```php
+  > //todo_list.php
+  >
+  > <?php
+  >
+  > $user = "snow";
+  > $password = "PassWord.1";
+  > $database = "winter_db";
+  > $table = "todo_list";
+  > $host = "localhost";
+  >
+  > try {
+  >   $db = new PDO("mysql:host=$host; dbname=$database", $user, $password);
+  >   echo "<h2>TODO</h2><ol>";
+  >
+  >   foreach($db->query("SELECT content FROM $table") as >$row){
+  >       echo "<li>" . $row['content'] . "</li>";
+  >     }
+  >   echo "</ol>";
+  >   }
+  > catch (PDOException $e) {
+  >       print "Error!: " . $e->getMessage() . "<br/>";
+  >       die();
+  >   }
+  > ```
+
+  Save the file as `todo_list.php`.
+
+Now, you can access this page by visiting `http://[your_ip]/todo_list.php`.
+![Alt text](Images/img_20.png)
+**And there you go. We can read data directly from our database to our PhP application**
