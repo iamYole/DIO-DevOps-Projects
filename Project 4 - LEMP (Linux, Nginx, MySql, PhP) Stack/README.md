@@ -260,7 +260,7 @@ In this exercise, we will be creating a database called `winter_db`, and then cr
   > );
   >
   > INSERT INTO `todo_list` (CONTENT) VALUES
-  > ('EAssess the current CI/CD pipeline for weaknesses and inefficiencies'),
+  > ('Assess the current CI/CD pipeline for weaknesses and inefficiencies'),
   > ('Integrate automated testing into the deployment process'),
   > ('Implement blue-green deployment strategies for zero-downtime releases'),
   > ('Explore opportunities for parallelizing build processes'),
@@ -317,5 +317,6 @@ In this exercise, we will be creating a database called `winter_db`, and then cr
   Save the file as `todo_list.php`.
 
 Now, you can access this page by visiting `http://[your_ip]/todo_list.php`.
-![Alt text](Images/img_20.png)
+
+![Alt text](Images/img_20.png) </br></br>
 **And there you go. We can read data directly from our database to our PhP application**
