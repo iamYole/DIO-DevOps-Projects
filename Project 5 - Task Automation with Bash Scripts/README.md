@@ -140,7 +140,7 @@ Bash scripts are ususally saved with the `.sh` extension. Lets create our first 
   > echo "All Good"
   > ```
 
-      ![Alt text](Images/img_05.png)
+  ![Alt text](Images/img_05.png)
 
   From the image above, the script ran sucessfully and in the process, created few files and a folder. However, towards the end of the script, all the files and folders were deleted.  
   This is just an example of how we can combine multiple commands to automate a task in linux.  
