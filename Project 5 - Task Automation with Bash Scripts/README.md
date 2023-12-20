@@ -146,4 +146,192 @@ Bash scripts are ususally saved with the `.sh` extension. Lets create our first 
   This is just an example of how we can combine multiple commands to automate a task in linux.  
    The tasks could be as simple as creating or deleting a file to something as complex as downloading ngix, installing and configuring a database and then deploying a web site.
 
-### Part 2 - File Operations and Sorting
+### Part 2 - Directory Manipulation and Navigation
+
+In this section, we will be building up on where we stopped in the last script. We will do more direction manipulation and navigation using bash script.
+
+> ```bash
+> #!/bin/bash
+>
+> # Display current directory
+> echo "Current directory: $PWD"
+>
+> # Create a new directory
+> echo "Creating a new directory..."
+> mkdir my_directory
+> echo "New directory created."
+>
+> # Change to the new directory
+> echo "Changing to the new directory..."
+> cd my_directory
+> echo "Current directory: $PWD"
+>
+> # Create some files
+> echo "Creating files..."
+> touch file1.txt
+> touch file2.txt
+> echo "Files created."
+>
+> # List the files in the current directory
+> echo "Files in the current directory:"
+> ls
+>
+> # Move one level up
+> echo "Moving one level up..."
+> cd ..
+> echo "Current directory: $PWD"
+>
+> # Remove the new directory and its contents
+> echo "Removing the new directory..."
+> rm -rf my_directory
+> echo "Directory removed."
+>
+> # List the files in the current directory again
+> echo "Files in the current directory:"
+> ls
+>
+> ```
+>
+> Save and run the script.
+
+### Part 3 - File Operations and Sorting
+
+Just as we've seen how can can manipulate and navigate directories in bash scripting, we will be performing some file operation and sorting in this exercise. With a bash script, we can automate tasks such as coping and deleting files, renaming files, checking if a file exists or not, appending and deleting contents of a file, finding files by their extension, changing permissions of a file etc. As you can see, we can do almost operation using bash scripting.
+
+> ```bash
+> #!/bin/bash
+>
+> # Create three files
+> echo "Creating files..."
+> echo "This is file3." > file3.txt
+> echo "This is file1." > file1.txt
+> echo "This is file2." > file2.txt
+> echo "Files created."
+>
+> # Display the files in their current order
+> echo "Files in their current order:"
+> ls
+>
+> # Sort the files alphabetically
+> echo "Sorting files alphabetically..."
+> ls | sort > sorted_files.txt
+> echo "Files sorted."
+>
+> # Display the sorted files
+> echo "Sorted files:"
+> cat sorted_files.txt
+>
+> # Remove the original files
+> echo "Removing original files..."
+> rm file1.txt file2.txt file3.txt
+> echo "Original files removed."
+>
+> # Rename the sorted file to a more descriptive name
+> echo "Renaming sorted file..."
+> mv sorted_files.txt sorted_files_sorted_alphabetically.txt
+> echo "File renamed."
+>
+> # Display the final sorted file
+> echo "Final sorted file:"
+> cat sorted_files_sorted_alphabetically.txt
+>
+> ```
+
+### Part 4 - Working with Numbers and Calculations
+
+Just like other programming languages, we can perfome basic calulations with bash script.
+
+> ```bash
+> #!/bin/bash
+>
+> # Define two variables with numeric values
+> num1=10
+> num2=5
+>
+> # Perform basic arithmetic operations
+> sum=$((num1 + num2))
+> difference=$((num1 - num2))
+> product=$((num1 * num2))
+> quotient=$((num1 / num2))
+> remainder=$((num1 % num2))
+>
+> # Display the results
+> echo "Number 1: $num1"
+> echo "Number 2: $num2"
+> echo "Sum: $sum"
+> echo "Difference: $difference"
+> echo "Product: $product"
+> echo "Quotient: $quotient"
+> echo "Remainder: $remainder"
+>
+> # Perform some more complex calculations
+> power_of_2=$((num1 ** 2))
+> square_root=$(echo "sqrt($num2)" | bc)
+>
+> # Display the results
+> echo "Number 1 raised to the power of 2: $power_of_2"
+> echo "Square root of number 2: $square_root"
+>
+> ```
+>
+> ![Alt text](Images/Img_06.png)
+
+The script above performed different arithmetic calculations using two interger variables. Bash scripting also support functions. For example
+
+> ```bash
+> #! /bin/bash
+>
+> num1=10
+> num2=4
+> value=$((num1 ** num2))
+>
+> # function to calculate the value of num1 to the nth num2 power
+>
+> function power(){
+>      echo "The value of $num1 to the power of $num2 is $value"
+> }
+>
+> power
+> ```
+>
+> ![Alt text](Images/img_07.png)
+
+### Part 5 - File Backup and Timestamp
+
+Backing up files is crucial to safeguard against data loss caused by accidental deletion, hardware failure, or other unforeseen events. Timestamping backups adds an additional layer of importance by providing a chronological record, aiding in version control and enabling the restoration of files to specific points in time for effective data management and recovery.  
+This very importanct task can be accomplished using a simple bash script.
+
+> ```bash
+> #! /bin/bash
+>
+> # Define the source directory and backup directory
+> #source_dir="/path/to/source_directory"
+> source_dir=$PWD
+> backup_dir="/path/to/backup_directory"
+>
+> # Create a timestamp with the current date and time
+> timestamp=$(date +"%Y%m%d%H%M%S")
+>
+> # Create a backup directory with the timestamp
+> backup_dir_with_timestamp="$backup_dir/backup_$timestamp"
+>
+> # Create the backup directory
+> sudo mkdir -p "$backup_dir_with_timestamp"
+>
+> # Copy all files from the source directory to >the backup directory
+> sudo cp -r "$source_dir"/* "$backup_dir_with_timestamp"
+>
+> # Display a message indicating the backup process is complete
+> echo "Backup completed. Files copied to: $backup_dir_with_timestamp"
+> echo "Backup dir contents. DIR=" $backup_dir_with_timestamp
+> ls -l $backup_dir_with_timestamp
+>
+> ```
+
+- Run the above script multiple times to create different backup folders with unique timestamps.
+- Navigate to the backup directory to see the list of backup folders created
+- list the content of any of the directory. All files from our intitial home working directory are now backed up at that location.
+
+![Alt text](Images/img_08.png)
+
+**So these and many more powerful automation tasks can be archieve using a simple bash script**.
