@@ -20,7 +20,7 @@ Let's do an exercise implementing this using MySQL database.
 
 For this exercise, we will need two separate computers on the same network
 ![Alt text](Images/Img_02.png)
-This is my MySQL Sever running on Linux ubunto with an ip-address of 172.31.3.165
+This is my MySQL Sever running on Linux ubuntu with an ip-address of 172.31.3.165
 ![Alt text](Images/Img_03.png)
 While this is my MySQL Client running on Linux Redhat with an ip-address of 172.31.5.184
 ![Alt text](Images/Img_04.png)
@@ -42,6 +42,8 @@ Then modify the line below by adding a # in front of the binding directive, and 
 > binding-address     =  0.0.0.0
 > ```
 
+NB: In production enviroments, we will want to be as specific as possible on providing the address our server can accept connections from instead of allowing all connections using `0.0.0.`
+
 Save the file, and the output should be like what's in the image below when you run the command below:  
 `sudo cat /etc/mysql/mysql.conf.d/mysqld.cnf | grep bind`
 ![Alt text](Images/Img_06.png)
@@ -57,7 +59,8 @@ Now, let's connect to the mysql server from our client machine by using the comm
 - `-u`: This tells the mysql server the username that's connecting.
 - `-p`: This tells the mysql server to ask for a password.
 - `-h`: This is the `ip-address` of where `mysql server is running`. I provided the Public ip-address of my `mysql server` as I'm not using a local network, but AWS EC2 instances.
+- We also need to ensure port `3306` is opened to allow outside traffic on the mysql server.
 
 ![Alt text](Images/Img_07.png)
 
-**There you have it. I'm connected to `mysql server` which could be miles away from my client machine.**
+**There you have it. I'm connected to `mysql server` which could be miles away from my client machine. The error shown in the image above was before the Server was configured to accept connections from a remote host**
