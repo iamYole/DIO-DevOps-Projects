@@ -42,7 +42,7 @@ Then modify the line below by adding a # in front of the binding directive, and 
 > binding-address     =  0.0.0.0
 > ```
 
-NB: In production enviroments, we will want to be as specific as possible on providing the address our server can accept connections from instead of allowing all connections using `0.0.0.`
+NB: In production enviroments, we will want to be as specific as possible on providing the address our server can accept connections from instead of allowing all connections using `0.0.0.0`
 
 Save the file, and the output should be like what's in the image below when you run the command below:  
 `sudo cat /etc/mysql/mysql.conf.d/mysqld.cnf | grep bind`
