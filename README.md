@@ -8,7 +8,7 @@
    In this project, we will be using the LAMP (Linux, Apache, MySql and PhP) web stack to deploy a simple web application. The project provides details on how to configure, manage and secure the technologies(Linux, Apapche, MySql, PhP).
 4. Project 4 - [Deploy a simple web application using the LEMP web STACK](<https://github.com/iamYole/DIO-Projects/tree/main/Project%204%20-%20LEMP%20(Linux%2C%20Nginx%2C%20MySql%2C%20PhP)%20Stack>)  
    In this project, we will be using the LEMP (Linux, Nginx, MySql and PhP) web stack to deploy a simple web application that reads data from a database. The project provides details on how to configure, manage and secure the technologies(Linux, Nginx, MySql, PhP). It also provides a basic introduction to **C R ~~U~~ ~~D~~ (Create Read ~~Update~~ ~~Delete~~)** Operations in a database.
-5. Project 5 - [Task Automation with Bash Scripting](https://github.com/iamYole/DIO-Projects/tree/main/Project%205%20-%20Task%20Automation%20with%20Bash%20Scripts)
+5. Project 5 - [Task Automation with Bash Scripting](https://github.com/iamYole/DIO-Projects/tree/main/Project%205%20-%20Task%20Automation%20with%20Bash%20Scripts)  
    An introduction to bash scripting. Here, basic tasks such as file and directory manipulation, Text processing, Conditional Statments and funcitons, accepting user input creating, backing up files with timestamp, etc are demonstrated.
-6. Project 6 - [Demonstrating a Client - Server Architecture using MySQL Server]()
+6. Project 6 - [Demonstrating a Client - Server Architecture using MySQL Server](https://github.com/iamYole/DIO-Projects/tree/main/Project%206%20-%20Demonstrating%20a%20Client%20-%20Server%20Architecture%20using%20MySQL%20Server)  
    A simple exercise to demonstrate the Client - Server Architecture using MySQL database (MySql client and Mysql Server), and two separate computers running in the same newtwork.
