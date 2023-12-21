@@ -10,3 +10,5 @@
    In this project, we will be using the LEMP (Linux, Nginx, MySql and PhP) web stack to deploy a simple web application that reads data from a database. The project provides details on how to configure, manage and secure the technologies(Linux, Nginx, MySql, PhP). It also provides a basic introduction to **C R ~~U~~ ~~D~~ (Create Read ~~Update~~ ~~Delete~~)** Operations in a database.
 5. Project 5 - [Task Automation with Bash Scripting](https://github.com/iamYole/DIO-Projects/tree/main/Project%205%20-%20Task%20Automation%20with%20Bash%20Scripts)
    An introduction to bash scripting. Here, basic tasks such as file and directory manipulation, Text processing, Conditional Statments and funcitons, accepting user input creating, backing up files with timestamp, etc are demonstrated.
+6. Project 6 - [Demonstrating a Client - Server Architecture using MySQL Server]()
+   A simple exercise to demonstrate the Client - Server Architecture using MySQL database (MySql client and Mysql Server), and two separate computers running in the same newtwork.
