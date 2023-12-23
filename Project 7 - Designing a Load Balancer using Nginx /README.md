@@ -107,8 +107,8 @@ Good. The next step is to configure the nginx load balancer. Create a file `load
 >   upstream backend_servers {
 >
 >        # your are to replace the public IP and Port to that of your webservers
->        server 18.171.179.156:8000; # public IP and port for webserser 1
->        server 3.8.96.8:8000; # public IP and port for webserver 2
+>        server 18.171.179.156:8080; # public IP and port for webserser 1
+>        server 3.8.96.8:8080; # public IP and port for webserver 2
 >
 >    }
 >
