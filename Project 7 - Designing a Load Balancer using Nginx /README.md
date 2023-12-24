@@ -54,7 +54,7 @@ Next, we will configure `Apache` to run on port 8080 instead of the default port
 
 Open the apache default configuration file and modify the port of the virtual host also to 8080  
 `sudo vim /etc/apache2/sites-available/000-default.conf`  
-Change the port number from _:80 to _:8080 as seen in the image below
+Change the port number from `*:80` to `*:8080` as seen in the image below
 ![Alt text](Images/Img_07.png)
 Save the file using :wq! command in the text editor. This is necessary as the file won't allow changes.
 
