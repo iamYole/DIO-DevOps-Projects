@@ -6,7 +6,7 @@ We will be implementing the excat same thing in this project, but with the help 
 
 ### Part 1 - Bash Sctipt for the Backend Web Servers Automation.
 
-The script below contains all the commands required to get our webservers up and running. Open your favorite text editor copy and paste the script below into a text files, then save it as `webapp.sh`
+The script below contains all the commands required to get our webservers up and running. Open your favorite text editor copy and paste the script below into a text file, then save it as `webapp.sh`
 
 > ```bash
 > #! /bin/bash
@@ -94,7 +94,154 @@ The script below contains all the commands required to get our webservers up and
 > echo "                        ALL COMMANDS EXECUTED SUCESSFULLY                        "
 > echo "#################################################################################"
 >
->
-> ![Alt text](Images/Img_01.png)
-> If all goes well we should see the output in the image above.
 > ```
+
+![Alt text](Images/Img_01.png)
+
+If all goes well we should see the output in the image above.
+
+> Remember to give the file execute permission by running the code below  
+> `chmod +x webapp.sh`
+
+Screenshot of` WebServer-01`
+![Alt text](Images/Img_02.png)
+
+Screenshot of `WebServer-02`
+![Alt text](Images/Img_03.png)
+
+### Part 2 - Bash Script for the Nginx Load Balancer
+
+The script below contains all the commands required to get our loadbalancer up and running. Open your favorite text editor copy and paste the script below into a text file, then save it as `loadbalancer_script.sh`
+
+> ```bash
+> #!/bin/bash
+>
+> ############################################################################################################
+> ##### This automates the configuration of Nginx to act as a load balancer
+> ##### Usage: This script is interactive, and requires 3 variables.
+> ##### The public IP of the EC2 instance where Nginx is installed
+> ##### The webserver urls for which the load balancer distributes traffic.
+> #############################################################################################################
+>
+> echo "#################################################################################"
+> echo "##### This script configures this host to act as a load balance. "
+> echo "##### Kindly provide the following mandatory information to proceed "
+> echo "##### "
+> echo "##### Host Server Public IP e.g 10.11.12.13 "
+> echo "##### Web Server 01 Public IP and Port e.g 11.12.13.14:8080 "
+> echo "##### Web Server 02 Public IP and Port e.g 12.13.14.15:8080 "
+> echo "##### "
+> echo "#################################################################################"
+>
+> #set -x # debug mode
+> set -e # exit the script if there is an error
+> set -o pipefail # exit the script when there is a pipe failure
+>
+> read -p "Please provide Host Server Public IP: " PUBLIC_IP
+>   if [ -z "${PUBLIC_IP}" ]; then
+>       echo "Please provide Host Server Public IP"
+>       exit 1
+>   fi
+> echo "Using $PUBLIC_IP for the host public ip"18
+> echo " "
+>
+> read -p "Please provide Web Server 01 Public IP and Port: " WEBSERVER01
+>   if [ -z "${WEBSERVER01}" ]; then
+>       echo "Please provide Web Server 01 Public IP and Port:"
+>       exit 1
+>   fi
+> echo "Using $WEBSERVER01 for Webserver_01 IP and PORT"
+> echo " "
+>
+> read -p "Please provide Web Server 02 Public IP and Port: " WEBSERVER02
+>   if [ -z "${WEBSERVER02}" ];then
+>       echo "Please provide Web Server 02 Public IP and Port:"
+>       exit 1
+>   fi
+> echo "Using $WEBSERVER02 for Webserver_02 IP and PORT"
+> echo " "
+>
+> sudo apt update -y
+> echo "#################################################################################"
+> echo " All set. Installing Nginx "
+> echo "#################################################################################"
+> sudo apt install nginx -y
+> echo " "
+> echo "#################################################################################"
+> echo " NGINX WEB SERVER INSTALLED SUCESSFULLY "
+> echo "#################################################################################"
+> echo " "
+> sudo systemctl status nginx
+>
+> echo " "
+> echo "Configuring the load balancer ........"
+>
+> sudo touch /etc/nginx/conf.d/loadbalancer.conf
+>
+> sudo chmod 644 /etc/nginx/conf.d/loadbalancer.conf
+> sudo chmod 644 -R /etc/nginx/
+>
+> loadbalancer_content=$(cat <<EOF
+> upstream backend_servers { # your are to replace the public IP and Port to that of your webservers
+>
+>    server  ${WEBSERVER01}; # public IP and port for webserser 1
+>    server ${WEBSERVER02}; # public IP and port for webserver 2
+>    }
+>
+>    server {
+>        listen 80;
+>        server_name ${PUBLIC_IP};
+>
+>        location / {
+>            proxy_pass http://backend_servers;
+>            #proxy_set_header Host $PUBLIC_IP;
+>            #proxy_set_header X-Real-IP $remote_addr;
+>            #proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+>        }
+>    }
+>
+> EOF
+> )
+>
+> # Write the content to loadbalancer.conf
+>
+> sudo bash -c "echo '$loadbalancer_content' > /etc/nginx/conf.d/loadbalancer.conf"
+>
+> sudo nginx -t
+> echo "#################################################################################"
+> echo " Nginx files configured sucessfully "
+> echo "#################################################################################"
+> echo " "
+> echo "Resarting the server .............."
+> sudo systemctl restart nginx
+> echo " "
+> sudo systemctl status nginx
+> echo " "
+> echo "#################################################################################"
+> echo "##### Load Balancer up and running "
+> echo "##### To access your applications, visit http://$PUBLIC_IP "
+> echo "#################################################################################"
+>
+> ```
+
+    Save the file and make it executable by running the code below
+    `chmod +x loadbalancer.sh`
+    Run the scrript and provide the variable below:
+
+    Note: Please provide the ip addresses of your own servers
+
+![Alt text](Images/Img_07.png)
+Screenshot of the interactive script requesting for the server details
+
+![Alt text](Images/Img_05.png)
+If all works well, you should see the sucessful message above
+
+![Alt text](Images/Img_08.png)
+Screenshot of the loadbalancer redirecting the clien to `WebServer-02`.
+
+![Alt text](Images/Img_09.png)
+Refresh the page and it should direct you to `WebServer-01` based on the loadbalancer's round-robin algorithm
+
+    Please note the ip is the load balancer's public IP and not that of the webservers. In ideal situations, we can configure the web servers to only accept traffic from the load balancer.
+
+**There you have it. With just two reusable bash scripts, we've deployed two(2) web applications and configured a load balance to evenly distribute traffic between the web application servers**
