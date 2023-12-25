@@ -226,7 +226,7 @@ The script below contains all the commands required to get our loadbalancer up a
 
     Save the file and make it executable by running the code below
     `chmod +x loadbalancer.sh`
-    Run the scrript and provide the variable below:
+    Run the script and provide the variables below:
 
     Note: Please provide the ip addresses of your own servers
 
@@ -237,11 +237,12 @@ Screenshot of the interactive script requesting for the server details
 If all works well, you should see the sucessful message above
 
 ![Alt text](Images/Img_08.png)
-Screenshot of the loadbalancer redirecting the clien to `WebServer-02`.
+Screenshot of the loadbalancer redirecting the client to `WebServer-02`.
 
 ![Alt text](Images/Img_09.png)
 Refresh the page and it should direct you to `WebServer-01` based on the loadbalancer's round-robin algorithm
 
-    Please note the ip is the load balancer's public IP and not that of the webservers. In ideal situations, we can configure the web servers to only accept traffic from the load balancer.
+    Please note the ip is the load balancer's public IP and not that of the webservers.
+    In ideal situations, we can configure the web servers to only accept traffic from the load balancer.
 
 **There you have it. With just two reusable bash scripts, we've deployed two(2) web applications and configured a load balance to evenly distribute traffic between the web application servers**
