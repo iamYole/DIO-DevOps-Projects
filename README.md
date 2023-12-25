@@ -14,5 +14,5 @@
    A simple exercise to demonstrate the Client - Server Architecture using MySQL database (MySql client and Mysql Server), and two separate computers running in the same newtwork.
 7. Project 7 - [Designing a Load Balancer using Nginx](https://github.com/iamYole/DIO-Projects/tree/main/Project%207%20-%20Designing%20a%20Load%20Balancer%20using%20Nginx%20)  
    This is exercise, we will see how Nginx can be configured to act as a load balancer. We will be creating two different web applications running on apache, and the a third server would be provision with Nginx. The client would go the the load balancer's url, and the load balancer would automatically redirect the traffic to any of the availabe server.
-8. Project 8 - [Advance Bash Scripting - Automating the configuration of a Load Balancer in Nginx]()  
+8. Project 8 - [Advance Bash Scripting - Automating the configuration of a Load Balancer in Nginx](https://github.com/iamYole/DIO-Projects/tree/main/Project%208%20-%20Bash%20Scripting%20-%20Automating%20a%20LoadBalncer%20Configuration)  
    In this project, we will expore more on bash scripting by creating two(2) bash scripts. The first script will automate the deploment of a web application running on apache. The second script will configure Nginx to act as a load balancer to evenly distrubute traffic between two web applications.
