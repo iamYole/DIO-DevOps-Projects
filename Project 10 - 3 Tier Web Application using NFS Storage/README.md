@@ -14,13 +14,13 @@ To implement the architecture above, the following would be required:
 1. An AWS Account
 2. EC2 Instances  
    a. Linux Red Hat for the Web Servers (3)
-   b. Ubuntu Web Server for the Database (1)
-   c. Linux Web Server for the NFS Storage (1)
+   b. Ubuntu Linux for the Database (1)
+   c. Linux Red Hat for the NFS Storage (1)
 3. GitHub account
 
 Let's start by configure the NFS Storage.
 
-### Part 1 - Creaing and configuring the NFS Storage
+### Part 1 - Creating and configuring the NFS Storage
 
 For this, we will be using a specific version of Red Hat Linux (RHEL-8.6.0_HVM-20220503-x86_64-2-Hourly2-GP2) The Image ID is **ami-035c5dc086849b5de**.
 
@@ -55,12 +55,68 @@ For this, we will be using a specific version of Red Hat Linux (RHEL-8.6.0_HVM-2
 We've configure the LVM on our `Storage Server`, now let's configure NFS.
 
 10. Let's install the NFS utils, and then start the NFS service. > `bash
+
     > sudo yum -y update
     > sudo yum install nfs-utils -y
     > sudo systemctl start nfs-server
     > sudo systemctl enable nfs-server
     > sudo systemctl status nfs-server
-    >
-    > `
-    > ![Alt text](Images/Img_10.png)
+
+    ![Alt text](Images/Img_10.png)
+
 11. Next, we need to edit the permissions of the mount directories to make them accessible by the web servers.
+
+    > ```bash
+    > sudo chown -R nobody: /mnt/apps
+    > sudo chown -R nobody: /mnt/logs
+    > sudo chown -R nobody: /mnt/opt
+    >
+    > sudo chmod -R 764 /mnt/apps
+    > sudo chmod -R 764 /mnt/logs
+    > sudo chmod -R 764 /mnt/opt
+    >
+    > ```
+
+    The first set of commands change the ownership of the folders to the `Nobody` user. To confirm that user exists, run the command `sudo cat /etc/passwd | grep nobody`.  
+    The second set of commands change the permission different users and groups have to the folders. The 7 signifies Read Write and Execute permission to the owner, the 6 signifies Read and Write permission to the group, while 4 signifies just Read permission to others.
+
+12. Next, we will edit the `/etc/exports` file. This file defines which directories are exported, who can access them, and what level of access they have. Let's edit the file with the following code below:
+
+    > ```bash
+    > /mnt/apps 172.31.32.0/20(rw,sync,no_all_squash,no_root_squash)
+    > /mnt/logs 172.31.32.0/20(rw,sync,no_all_squash,no_root_squash)
+    > /mnt/opts 172.31.32.0/20(rw,sync,no_all_squash,no_root_squash)
+    > ```
+
+    - The the code above, we used the subnet CIDR `172.31.32.0/20` to give permission to all ip address within that subnet. You can also provide the exact ip address for the servers if you wish.
+    - `rw` - Grants read and write access to the NFS clients
+    - `sync` - Synchronizes changes to the file system before replying to the client. This ensures that changes are committed to stable storage before a write operation is considered complete.
+    - `no_all_squash` - Disables the "all_squash" option. By default, NFS maps all users to the anonymous user (typically "nobody"). This option preserves the original user and group identities.
+    - `no_root_squash` - Disables the "root_squash" option. By default, NFS prevents the root user on the client from having root access on the exported directory. This option allows the root user on the client to have root access.
+
+13. After editing the `/etc/exports` file, we need to refresh or re export all entries listed in the file. This will make the confirguration take effect. We also need to restart the NFS server to ensure all changes are effected.  
+     `sudo systemctl restart nfs-server`  
+     `sudo exportfc -arv`  
+     ![Alt text](Images/Img_11.png)
+
+        After all has been done, we can confirm the ports NFS is running on with the command `rcpinfo -p | grep nfs`
+
+    ![Alt text](Images/Img_12.png)
+
+14. Finally, we need to configure the security group for the nfs server and open the following ports. This will enable the nfs clients connect to the nfs server.
+    ![Alt text](Images/Img_13.png)
+
+### Part 2 - Creating and Configuring the Database Server.
+
+In this section, we will provison an EC2 Instance running Ubuntu and then install MySQL Server. I wont go over the steps involved in provisioning the server as well as install MySQL Server. I will however, go over the steps of creating the database that would be used by the Web Servers.
+![Alt text](Images/Img_14.png)
+MySQL has already been installed and running as seen above. Now, let's create the database. For this project, we will be creating a database called `tooling`, and configuring the database to be accessed by all ip address running within a specific subnet CIDR. In this case `172.31.32.0/20`
+
+- Let's start by creating the user `webaccess`, and grant the user `CREATE` permission.
+  ![Alt text](Images/Img_15.png)
+- Next, we log into the `mysql` console as the newly created `webaccess` user and then create the database `tooling`.
+  ![Alt text](Images/Img_16.png)
+
+  And our Database has been created. Remember to edit the `/etc/mysql/mysql.conf.d/msqld.cnf` file to allow access from remote servers.
+
+### Part 3 - Creating and Configuring the Web Servers

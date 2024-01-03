@@ -213,11 +213,12 @@ The steps here would be very similar to what we did in Part 1a of this project. 
     For the data files, we will create a directory `/db` to store the data files, the the log files is still in the same location as used earlier. Remember to first backup the log files before mounting them to the drive.
 10. Let's edit the `fstab` file using the `UUIDs` for our drivers. Remember, run the `sudo blkid` command to retreive the`UUIDs`. Add the entires below to your `/etc/fstab` file.
 
-            > ```bash
-            > #Mounts for the Database Server
-            > UUID=8bd5f929-0b71-4e28-a63e-74f8db3c1fef       /home/db        ext4    defaults        0       0
-            > UUID=cd0161e4-0311-4b3e-acf2-8df079a34e04       /var/log        ext4    defaults        0       0
-            >
+    > ```bash
+    > #Mounts for the Database Server
+    > UUID=8bd5f929-0b71-4e28-a63e-74f8db3c1fef       /home/db        ext4    defaults        0       0
+    > UUID=cd0161e4-0311-4b3e-acf2-8df079a34e04       /var/log        ext4    defaults        0       0
+    >
+    > ```
 
         Save the file then run the command `sudo mount -a` and then `sudo systemctl deamon-reload`. Once done, run the `df -h` command to verify the setup.
 
