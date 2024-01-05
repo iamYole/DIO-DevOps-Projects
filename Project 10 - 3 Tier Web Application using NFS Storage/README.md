@@ -96,7 +96,7 @@ We've configure the LVM on our `Storage Server`, now let's configure NFS.
 
 13. After editing the `/etc/exports` file, we need to refresh or re export all entries listed in the file. This will make the confirguration take effect. We also need to restart the NFS server to ensure all changes are effected.  
      `sudo systemctl restart nfs-server`  
-     `sudo exportfc -arv`  
+     `sudo exportfs -arv`  
      ![Alt text](Images/Img_11.png)
 
         After all has been done, we can confirm the ports NFS is running on with the command `rcpinfo -p | grep nfs`
@@ -117,6 +117,166 @@ MySQL has already been installed and running as seen above. Now, let's create th
 - Next, we log into the `mysql` console as the newly created `webaccess` user and then create the database `tooling`.
   ![Alt text](Images/Img_16.png)
 
-  And our Database has been created. Remember to edit the `/etc/mysql/mysql.conf.d/msqld.cnf` file to allow access from remote servers.
+  And our Database has been created. Remember to edit the `/etc/mysql/mysql.conf.d/msqld.cnf` file to allow access from remote servers and also open port `3306` in the security group.
 
 ### Part 3 - Creating and Configuring the Web Servers
+
+In this section, we will be creating three(3) Web Servers to host our website. The servers will all access the same files and well as connect to the same database. Let's begin.
+
+- The first step is to provision three (3) EC2 Instances running Red Hat Linux. Ensure the Web Servers are provisioned in the same AZ or subnet as the NFS Server `172.31.32.0/20`
+- Next, we connet to the instances via ssh and install the nfs client. This can be done by running the command below:  
+  `sudo yum -y update` and  
+  `sudo yum install nfs-utils nfs4-acl-tools -y`
+- The next step will be to create a directory where the web application will be hosted, and then mount that directory to the `/mnt/apps` on the nfs server. To do this, let's run the following commands:  
+   `sudo mkdir /var/www`  
+   `sudo mount -t nfs -o rw,nosuid 172.31.47.126:/mnt/apps /var/www`
+
+  - `mount -t nfs`. This is used to mount a file system, and th `-t` specifices the file system type to be mounted. In the case, we are mounnting the `nfs` file system.
+  - `-o rw,nosuid`. This specifies the mount options. `rw` signifies read-write access, and `nosuid` prevents the execution og setuid programs.
+  - `172.31.47.126:/mnt/apps`. This is the private IP Address of the nfs server, and `/mnt/apps` is the exported directory on the nfs server, and the location we intend hosting web application data.
+  - `/var/www`. The local directory on the client where the NFS share will be mounted.
+
+        The confirm the directory was mounted properly by running the `df -h` command.
+
+    ![Alt text](Images/Img_17.png)  
+    From the image above, we can see our directory `/var/www` has been mounted on the nfs server's `/mnt/apps` location.
+
+- The next step will be to make this change persist even after a system reboot. We do this by modifying the `/etc/fstab` file with the code below:
+
+  > ```bash
+  > 172.31.47.126:/mnt/apps /var/www nfs defaults 0 0
+  > ```
+
+  then reload a devices by running `mount -a`.
+
+Our nfs client has now been configured to access files from the nfs server as if the files are in the local directory. Now, lets install Apache and PhP for the web application.
+
+- Install Apache and PhP by running the codes below:
+
+  > sudo yum install httpd -y
+
+  > sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+
+  > sudo dnf install dnf-utils http://rpms.remirepo.net/enterprise/remi-release-8.rpm
+
+  > sudo dnf module reset php
+
+  > sudo dnf module enable php:remi-7.4
+
+  > sudo dnf install php php-opcache php-gd php-curl php-mysqlnd mysql -y
+
+  > sudo systemctl start php-fpm
+
+  > sudo systemctl enable php-fpm
+
+  > sudo setsebool -P httpd_execmem 1
+
+- Now, let's repeat the steps above for the other two (2) web servers. Beginging from installing the nfs client to installing apache and php. Lot's of repetitive configurations, and creating a bash script to automate this step would be extremely useful especially if there needed to provision 10 or more servers. Let's do that with the code below.
+
+  > ```bash
+  > !# /bin/bash
+  > set -e
+  > set -o pipefail
+  >
+  > echo "Setting up the Web Server................"
+  > echo "Installing the NFS client"
+  > sudo yum install nfs-utils nfs4-acl-tools -y
+  > echo " "
+  > echo "NFS client installed sucessfully...."
+  > echo " "
+  > echo "Creating the web application directory, and mounting it to the nfs server"
+  > sudo mkdir /var/www
+  > sudo mount -t nfs -o rw,nosuid 172.31.47.126:/mnt/apps /var/www
+  > echo " "
+  > echo "Directory mounted. Confirm below"
+  > echo ""
+  > df -h
+  > echo " "
+  > echo "Modifying the /ect/fstab file"
+  > sudo echo "# The NFS mount information" >> /etc/fstab
+  > echo "172.31.47.126:/mnt/apps /var/www nfs defaults 0 0" | sudo tee -a /etc/fstab
+  > mount -a
+  > echo "The file has been edited and entries mounted sucessfully."
+  > echo " "
+  > echo "Installing Apache and Php"
+  > sudo yum install httpd -y
+  > sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm -y
+  > sudo dnf module reset php
+  > sudo dnf install php php-opcache php-gd php-curl php-mysqlnd -y
+  > sudo systemctl start httpd
+  > sudo systemctl enable httpd
+  > sudo systemctl start php-fpm
+  > sudo systemctl enable php-fpm
+  > sudo setsebool -P httpd_execmem 1
+  > echo " "
+  > echo "Web Server has now been configured"
+  > ```
+
+  Save the file as` websetup.sh`, give the file execute perimission and then run the script.
+  After this is done, log into the `NFS SERVER` and confirm we have the apache files in the `/mnt/apps` directory.  
+  ![Alt text](Images/Img_18.png)
+
+- We also need to mount the Web Server log files to the nfs server's /mnt/logs export. To do this, we run the command below and and then modifify the `/etc/fstab` file accordingly.
+
+  > sudo mount -t nfs -o rw,nosuid 172.31.47.126:/mnt/logs /var/log/httpd/
+
+  > Append `172.31.47.126:/mnt/logs	/var/log/httpd	nfs	defaults	0	0` to the `/etc/fstab file`
+
+  > mount -a  
+  > ![Alt text](Images/Img_19.png)  
+  > Do this for the other two(2) web servers also.
+
+The next step is to deploy our web application to the webserver. For this project, we will be using a tooling website by darey.io. The website can be fond in the [Darey.io Github Account](https://github.com/darey-io/tooling). Let's begin.
+
+- The first step is to install git in our local system and then clone the repository
+  ![Alt text](Images/img_20.png)
+- Next, we copy the `html` folder from the cloned repository to our `/var/www` location. Note we need to do this just once, and the other servers will automatically have access the the `html` folder as the `/var/www` is now shared by all the web servers. This is one benefit of using `nfs` file system.
+- For the application to connect to the `tooling` database we created earlier we need to make some changes to our application. Let's do the following:
+
+  - Navigate to `/var/www/html/functions.php` and edit the file with a text editor. Ensure you use the privete ip address of the database server as well as the username and password for the database user you created earlier.
+
+    > ```php
+    > // connect to database
+    > $db = mysqli_connect('172.31.43.28', 'webaccess', 'PassWord.1', 'tooling');
+    > ```
+
+  - Next, we use the `tooling-db.sql` script provided in the git repository to configure the database. From the any of the web servers, run the following command.
+
+        > mysql -u webaccess -p -h 172.31.43.28 tooling < tooling-db.sql
+
+        You will be prompted for the password, and the script will be executed. to confirm, log in to the mysql console and run the command `SHOW TABLES;`
+
+    ![Alt text](Images/Img_21.png)
+    From the image above, we can see our `users` table has been created.
+
+  - Still in the `mysql` console, lets run the scrip below to insert a record to the `users` table.
+
+    > ```sql
+    > INSERT INTO `users` (
+    >   `id`,
+    >   `username`,
+    >   `password`,
+    >   `email`,
+    >   `user_type`,
+    >   `status`
+    > )
+    > VALUES (
+    >   2,
+    >   'myuser',
+    >   '21232f297a57a5a743894a0e4a801fc3',
+    >   'user@email.com',
+    >   'user',
+    >   '2'
+    > );
+    > ```
+
+    ![Alt text](Images/Img_22.png)
+
+    You should now have two records in the user table. One from the `tooling-db.sql` script and the second record we created now.
+
+- It's now time to connect to our web application. Open the your web browser and visit `http://13.42.59.164/index.php`. Note the you have to specify the public address of any of the webservers.
+  ![Alt text](Images/Img_23.png)
+  Provide the username `myuser` and password `admin`
+
+![Alt text](Images/Img_24.png)
+**An there you have it. We've sucessfully deployed a web application on three(3) web servers using the Network File System**.
