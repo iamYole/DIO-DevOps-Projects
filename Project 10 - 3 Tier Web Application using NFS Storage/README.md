@@ -29,9 +29,8 @@ For this, we will be using a specific version of Red Hat Linux (RHEL-8.6.0_HVM-2
 2.  Next, we will attach Three (3) Volumes, 4GB each to the `Storage Server`. This would be used to confirgure the LVM. Remember, the Volumes must be created in the same AZ as the Storage Server.
     ![Alt text](Images/Img_03.png)
 3.  After attaching the volumes to our `Storage Server`, ssh to the server and then configure the LVM.
-    ![Alt text](Images/Img_04.png)
-
-        The image above shows the attached volumes.
+    ![Alt text](Images/Img_04.png)  
+    The image above shows the attached volumes.
 
 4.  Now, let's configure the LVM by using the `pvcreate` commands.
     ![Alt text](Images/Img_05.png)
@@ -50,6 +49,7 @@ For this, we will be using a specific version of Red Hat Linux (RHEL-8.6.0_HVM-2
     The modified `/etc/fstab` file show look like the image below. However, use the `blkid` command to retrieve the UUID for your drives.
     ![Alt text](Images/Img_08.png)
 9.  Now mount the drives by running the command `sudo mount -a` and then `sudo systemctl daemon-reload`. Confirm everything looks good by running `df -h`.
+
     ![Alt text](Images/Img_09.png)
 
 We've configure the LVM on our `Storage Server`, now let's configure NFS.
@@ -109,7 +109,9 @@ We've configure the LVM on our `Storage Server`, now let's configure NFS.
 ### Part 2 - Creating and Configuring the Database Server.
 
 In this section, we will provison an EC2 Instance running Ubuntu and then install MySQL Server. I wont go over the steps involved in provisioning the server as well as install MySQL Server. I will however, go over the steps of creating the database that would be used by the Web Servers.
+
 ![Alt text](Images/Img_14.png)
+
 MySQL has already been installed and running as seen above. Now, let's create the database. For this project, we will be creating a database called `tooling`, and configuring the database to be accessed by all ip address running within a specific subnet CIDR. In this case `172.31.32.0/20`
 
 - Let's start by creating the user `webaccess`, and grant the user `CREATE` permission.
@@ -247,6 +249,7 @@ The next step is to deploy our web application to the webserver. For this projec
         You will be prompted for the password, and the script will be executed. to confirm, log in to the mysql console and run the command `SHOW TABLES;`
 
     ![Alt text](Images/Img_21.png)
+
     From the image above, we can see our `users` table has been created.
 
   - Still in the `mysql` console, lets run the scrip below to insert a record to the `users` table.
