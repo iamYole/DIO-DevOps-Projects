@@ -20,7 +20,7 @@
    This project involves the deployment of a WordPress website with a focus on understanding and using LVM for storage management in a Linux environment. The first part of the project will focus on configuring the LVM for the web and database server, while the second part will be on installing and deploying a wordpress application that connects to a remote database.
 10. Project 10 - [Deploying a 3-Tier Web Application using Network File System (NFS) in AWS](https://github.com/iamYole/DIO-Projects/tree/main/Project%2010%20-%203%20Tier%20Web%20Application%20using%20NFS%20Storage)  
     We've already seen the deployment of a 3-Tier Web Application. However, this project builds on that by using the Network File System (NFS). Using NFS in a 3-tier web application deployment allows for a centralized and shared file system, simplifying data management and enabling better collaboration between different components. It enhances scalability, ease of maintenance, and flexibility in adapting to changing application requirements.
-11. Project 11 - [CI/CD With Jenkins]()  
+11. Project 11 - [CI/CD With Jenkins](https://github.com/iamYole/DIO-Projects/tree/main/Project%2011%20-%20CI%20CD%20With%20Jenkins)  
     In this project, we will intall and configure a Jenkins server to automate the deployment of the same application whenever the developers make a change to the source code by adding a feature to the application or fixing a bug.
 12. Project 12 - [Ansible Automating simple tasks with Ansible]()  
     This would be an introductory project to the world of ansible. In this project, we will install ansible and automate simple tasks with ansible
