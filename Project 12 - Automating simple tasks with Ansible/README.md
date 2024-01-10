@@ -23,7 +23,8 @@ Before we begin, let do the following:
 
         sudo apt insall ansible -y
 
-    ![Alt text](Images/img-01.png)
+    ![Alt text](Images/img_01.png)
+
     The image above shows Ansible verison 2.9.6 has been installed sucessfully.
 
 2.  Now, in log into Jenkins, create a new Freestyle Project called `project-ansible`.
@@ -228,6 +229,7 @@ Before we start running our playbooks, let's ensure the inventory file is proper
             ansible-playbook -i Inventory/dev.yml Playbooks/common.yml
 
     ![Alt text](Images/Img_08.png)
+
     From the screenshot above, the `common.yml` playbook first attemted connection the the `webservers and nfs` target, checked if wireshark was installed, and then installed it. It also did the same for the `db` server.  
     The reason for the separation was because the `common.yml` we created two task, one to update our servers running `RedHat`, and another to update the Servers running `Ubuntu`. But at the PLAY RECAP section, ansible gave us a nice summary of all the servers and the status `changed`, meaning there were changes made to the server based on the playbook.
 
