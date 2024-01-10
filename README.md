@@ -24,5 +24,5 @@
     In this project, we will intall and configure a Jenkins server to automate the deployment of the same application whenever the developers make a change to the source code by adding a feature to the application or fixing a bug.
 12. Project 12 - [Ansible (Automating simple tasks with Ansible)](https://github.com/iamYole/DIO-Projects/tree/main/Project%2012%20-%20Automating%20simple%20tasks%20with%20Ansible)  
     This would be an introductory project to the world of ansible. In this project, we will install ansible and automate simple tasks with ansible
-13. Project 13 - [More on Ansible (Imports and Assignments)]()
+13. Project 13 - [More on Ansible (Imports and Assignments)](<https://github.com/iamYole/DIO-Projects/tree/main/Project%2013%20-%20More%20on%20Ansible%20(Imports%20and%20Assignments)>)
     In this project, we will explore more on Ansible, specifically using Imports and Assignments to organise and struture our playbooks efficiently.
