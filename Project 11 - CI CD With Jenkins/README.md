@@ -54,44 +54,47 @@ Let's begin with provisioning the Jekins Server.
 
     We've sucessfully installed Jenkins and done completed the initial setup.
 
-### Part 2 - Confirgure Jenkins to retrieve source codes from GitHub using Webhooks.
+### Part 2 - Confirgure Jenkins to build source codes from GitHub using Webhooks.
 
 In GitHub, webhooks are a way for repositories to notify external systems about events that occur within the repository. Webhooks provide a mechanism to automatically trigger an action or actions in response to events like pushes, pull requests, issues, and more. Instead of manually polling the GitHub repository for changes, the repository can send an HTTP POST payload to a specified URL (our Jenkins Server) whenever a relevant event occurs.
 So basically, with GitHub Webhooks, we can configure Jenkins to automatically build codes from a repository whenever a developer commits some codes to that repository.  
 Let's begin by configuring Webooks in GitHub.
 
-1. Navigate to the [Tooling repository](https://github.com/darey-io/tooling) by Darey.io. In a separate tab, navigate to your own github account, and make sure you are signed it.
-2. In the Tooling repository above, click on the fork repository to create a copy in your github account. In the create fork window, ensure you unselect "Copy Master Branch Alone". This will ensure all branches other than the master branch if any is also copied.
-   ![Alt text](Images/Img_08.png)
-3. Now navgate to the forked repository on your GitHub Account. In the top menu, select settings, and then select WebHooks from the menu displayed on the left part of the page.
-   ![Alt text](Images/Img_09.png)
+1.  Navigate to the [Tooling repository](https://github.com/darey-io/tooling) by Darey.io. In a separate tab, navigate to your own github account, and make sure you are signed it.
+2.  In the Tooling repository above, click on the fork repository to create a copy in your github account. In the create fork window, ensure you unselect "Copy Master Branch Alone". This will ensure all branches other than the master branch if any is also copied.
+    ![Alt text](Images/Img_08.png)
+3.  Now navgate to the forked repository on your GitHub Account. In the top menu, select settings, and then select WebHooks from the menu displayed on the left part of the page.
+    ![Alt text](Images/Img_09.png)
 
-   Click on Add Webhooks
+    Click on Add Webhooks
 
-   ![Alt text](Images/Img_10.png)
+    ![Alt text](Images/Img_10.png)
 
-4. On the Webhook page, enter your Jenkins Server URL followed by `github-webhook/` in the payload text, and then select application/json in the content type. The final output should be like what's in the image below.
-   ![Alt text](Images/Img_11.png)
-   You can also select the type of event you want to trigger this webhook. For this, we would leave it at the default push. Click on Add Webhook, and it's been added already.
-5. The next step is to connect our Jenkins to our github acconts. Let's copy the Tooling Repository's URL to the clipboard as seen in the image below, then go back to Jenkins.
-   ![Alt text](Images/Img_12.png).
-   In Jenkins, click on New Item, give the job any name, and then select freestyle project then ok.
-   ![Alt text](Images/Img_13.png)
-   As seen in the image above, select source code management, click on Git, and then paste the Tooling repo's URL. Since this repository is hosted using public, not credential need to be provided. Save this, and in the next page that comes up, click build now.
-   ![Alt text](Images/Img_14.png)
-6. After the job has been built, you would see the build number `#1` by the left of the screen. If it's green, that means the build was sucessful, the red if it wasn't. Click on the build #1 and then the console output. You should see something similar to the image below:
-   ![Alt text](Images/Img_15.png)
-   This shows our Jenkins is connected to that GitHub repository. However, the build we did doesn't achieve anything. First, we have to manaully initial the build by clicking the build now, and there haven't been any changes on the Tooling repository.
-7. Now, let's confirgure our the job we created to build automatically when there is a change to our Tooling reporsitory.
+4.  On the Webhook page, enter your Jenkins Server URL followed by `github-webhook/` in the payload text, and then select application/json in the content type. The final output should be like what's in the image below.
+    ![Alt text](Images/Img_11.png)
+    You can also select the type of event you want to trigger this webhook. For this, we would leave it at the default push. Click on Add Webhook, and it's been added already.
 
-   - Go back to the Jenkins dashboard, and the click on the job you created.  
-     ![Alt text](Images/Img_16.png)
-   - From the left pane, click on configure. Scroll down to build triggers, and select `GitHub hook trigger for GITScm polling`
-     ![Alt text](Images/Img_17.png)
-   - Next, on the same page scroll down to Post build action, click on the dropdown arrow and select Archive the artifacts. In the text box provided, just type in `**` and then click save.
-     ![Alt text](Images/Img_18.png)
+         Note: It is important to not that the public IP address of an EC2 Instance changes on every reboot, except you are using an Elastic IP address. If note, you would have to change the url every time to the current ip address when every you reboot your os.
 
-8. Now, lets make some changes to our source code, commit the changes and then watch the Job automatically build the code from the github repository as soon as it get's notification of a change to the repository.
+5.  The next step is to connect our Jenkins to our github acconts. Let's copy the Tooling Repository's URL to the clipboard as seen in the image below, then go back to Jenkins.
+    ![Alt text](Images/Img_12.png).
+    In Jenkins, click on New Item, give the job any name, and then select freestyle project then ok.
+    ![Alt text](Images/Img_13.png)
+    As seen in the image above, select source code management, click on Git, and then paste the Tooling repo's URL. Since this repository is hosted using public, not credential need to be provided. Save this, and in the next page that comes up, click build now.
+    ![Alt text](Images/Img_14.png)
+6.  After the job has been built, you would see the build number `#1` by the left of the screen. If it's green, that means the build was sucessful, the red if it wasn't. Click on the build #1 and then the console output. You should see something similar to the image below:
+    ![Alt text](Images/Img_15.png)
+    This shows our Jenkins is connected to that GitHub repository. However, the build we did doesn't achieve anything. First, we have to manaully initial the build by clicking the build now, and there haven't been any changes on the Tooling repository.
+7.  Now, let's confirgure our the job we created to build automatically when there is a change to our Tooling reporsitory.
+
+    - Go back to the Jenkins dashboard, and the click on the job you created.  
+      ![Alt text](Images/Img_16.png)
+    - From the left pane, click on configure. Scroll down to build triggers, and select `GitHub hook trigger for GITScm polling`
+      ![Alt text](Images/Img_17.png)
+    - Next, on the same page scroll down to Post build action, click on the dropdown arrow and select Archive the artifacts. In the text box provided, just type in `**` and then click save.
+      ![Alt text](Images/Img_18.png)
+
+8.  Now, lets make some changes to our source code, commit the changes and then watch the Job automatically build the code from the github repository as soon as it get's notification of a change to the repository.
 
 - Clone the Tooling repository. This can be done on any computer, your local system or the jenkins server.
 - Navigate to the html folder and then create a new html file. I called mine job.html. Open the file and type in the following.
