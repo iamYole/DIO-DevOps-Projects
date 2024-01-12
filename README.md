@@ -26,5 +26,5 @@
     This would be an introductory project to the world of ansible. In this project, we will install ansible and automate simple tasks with ansible
 13. Project 13 - [More on Ansible (Imports and Assignments)](<https://github.com/iamYole/DIO-Projects/tree/main/Project%2013%20-%20More%20on%20Ansible%20(Imports%20and%20Assignments)>)
     In this project, we will explore more on Ansible, specifically using Imports and Assignments to organise and struture our playbooks efficiently.
-14. Project 14 - [More on Ansible 2 (Dynamic Assignments(Include) and Community Roles)]()  
+14. Project 14 - [More on Ansible 2 (Dynamic Assignments(Include) and Community Roles)](<https://github.com/iamYole/DIO-Projects/tree/main/Project%2014%20-%20More%20on%20Asible%202%20(Include%20and%20Coomunity%20Roles)>)  
     In this project, we will expore more way to structure our ansible project using the **Include** feature. We will also expore some community or pre-built roles in ansible.

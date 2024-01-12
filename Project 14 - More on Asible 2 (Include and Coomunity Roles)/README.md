@@ -114,7 +114,9 @@ We've been using our local machine to develope the code for the ansible project.
 - Inside the `roles-feature` branch, create a new directory called `roles`
   ![Alt text](Images/Img_02.png)
 - Navigate into the newly created directory, and run the code below to download a new MySQL Role
+
   > `ansible-galaxy install geerlingguy.mysql`
+
 - Rename the downloaded folder to mysql.
   ![Alt text](Images/Img_03.png)
 - Push the changes back to GitHub and then Pull the changes to your local machine. This would make it easir writing and modifying the YAML codes on VS Code.
@@ -136,7 +138,7 @@ We've been using our local machine to develope the code for the ansible project.
   >     priv: "*.*:ALL, GRANT"
   > ```
 
-        The code above creates a databse called tooling and a user with the details specified.
+        The code above creates a database called tooling and a user with the details specified.
 
 - Add the provision a new EC2 Instance running Ubuntu 22 and add the host to the `Inventory/uat.yml` as shown below:
   ![Alt text](Images/Img_04.png)
@@ -165,3 +167,64 @@ Let's save and commit the changes to GitHub. Log back to the Jenkins Server, pul
 - Before we test the playbook, let's first ping the uat_servers to make sure they are up and running.
   ![Alt text](Images/Img_07.png)
 - Now, let's run the `Playbooks/site.yml` file to configure the `uat servers`.
+  ![Alt text](Images/Img_08.png)
+
+**And there you have it, our uat webservers and uat database has been configured sucessfully.**
+
+    In cases your got some errors, consider modifying the following files with the followng lines of code. This is as a result of an update with some ansible modules.
+
+    - roles/mysql/task/defaults.yml: Change all occurance of ansible.builtin.command to command.
+    - roles/mysql/task/variable.yml: Change all occurance of ansible.builtin.include_vars to include_vars
+    - roles/mysql/task/secure_installation.yml: Change all occurance of ansible.builtin.command to command.
+
+    These are just examples of few errors encountered and how they were fixed. In your case, just read the error, trace the file and then fix the line that throw the error.
+
+When your code runs sucessfully, feel free to commit all changes, and then merge the code to the main repository.
+
+### Part 4 - Configuring the UAT LoadBalancers
+
+Now, lets's configure our `uat loadbalancers`. We will be creating two (2) load balancers, one with Apache, and the other with Nginx. Ansible would be confirgured in such as we that we can decide with loadbalancer to use.
+
+- SSH to the Jenkins Server and navitgate to the `ansible-config-mgt` repository. Ensure you are in the `roles-feature` branch.
+- Navigate to the roles directory and install the `Nginx` Role using the code below:
+  > `ansible-galaxy role install geerlingguy.nginx`
+- Change the directory's name to nginx
+  ![Alt text](Images/Img_09.png)
+- Do the same for `Apache`.
+  ![Alt text](Images/Img_10.png)
+- Now, let's push the changes to GitHub, and the pull the changes to our local machine and continue the configuration with VS Code.
+- We will begin by adding the `loadbalancer host` to `Inventory/uat`
+- For Nginx, let's add the following varibales to the `default/main.yml` file.
+  > ```nginx
+  > enable_nginx_lb: false
+  > load_balancer_is_required: false
+  > ```
+- While at it, let's do the same for the `Apache` role. These variables would enable us decided which loadbalance to use when running the `site.yml` playbook.
+- In the Nginx role, let's configure the upstream secton of the `default/main.yml` file.
+  > ```yaml
+  > nginx_upstreams:
+  >   - name: myapp1
+  >     strategy: "ip_hash" # "least_conn", etc.
+  >     servers:
+  >       - web_uat_1:
+  >       - web_uat_2:
+  > ```
+- Let's configure Apache to run on port 8080
+  > `apache_listen_port: 8080`
+- In the `static_assigmnets` directory, let;s create a new `uat-loadbalancer.yml` file the paste the code below:
+  > ```yaml
+  > - hosts: loadbalancer
+  >   roles:
+  >     - { role: nginx, when: enable_nginx_lb and load_balancer_is_required }
+  >     - { role: apache, when: enable_apache_lb and load_balancer_is_required }
+  > ```
+- In the `env-vars/uat.yml` file, let's enable only the `Ngnix` loadbalancer with the code below:
+  > ```nginx
+  > enable_nginx_lb: true
+  > enable_apache_lb: false
+  > load_balancer_is_required: true
+  > ```
+- Finally, let's update the `site.yml` file with our loadbalancer play
+  ![Alt text](Images/Img_11.png)
+- Now, let's run the playbook with the code below:
+  > `ansible-playbook -i Inventory/uat.yml Playbooks/site.yml`
