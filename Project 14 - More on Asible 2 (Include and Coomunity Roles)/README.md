@@ -189,7 +189,9 @@ Now, lets's configure our `uat loadbalancers`. We will be creating two (2) load 
 - Navigate to the roles directory and install the `Nginx` Role using the code below:
   > `ansible-galaxy role install geerlingguy.nginx`
 - Change the directory's name to nginx
+
   ![Alt text](Images/Img_09.png)
+
 - Do the same for `Apache`.
   ![Alt text](Images/Img_10.png)
 - Now, let's push the changes to GitHub, and the pull the changes to our local machine and continue the configuration with VS Code.
@@ -227,7 +229,10 @@ Now, lets's configure our `uat loadbalancers`. We will be creating two (2) load 
 - Finally, let's update the `site.yml` file with our loadbalancer play
   ![Alt text](Images/Img_11.png)
 - Now, let's run the playbook with the code below:
-  > `ansible-playbook -i Inventory/uat.yml Playbooks/site.yml` > ![Alt text](Images/Img_12.png)
+
+  > `ansible-playbook -i Inventory/uat.yml Playbooks/site.yml`
+
+  ![Alt text](Images/Img_12.png)
 
 **And there you have it, Our UAT Servers have been configured.**
 
