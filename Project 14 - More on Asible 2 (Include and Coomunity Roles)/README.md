@@ -118,7 +118,9 @@ We've been using our local machine to develope the code for the ansible project.
   > `ansible-galaxy install geerlingguy.mysql`
 
 - Rename the downloaded folder to mysql.
+
   ![Alt text](Images/Img_03.png)
+
 - Push the changes back to GitHub and then Pull the changes to your local machine. This would make it easir writing and modifying the YAML codes on VS Code.
 - Back to your local machine and having pulled the newly created files, navigate to `roles/mysql/defaults/main.yml` to make the following modifications:
 
