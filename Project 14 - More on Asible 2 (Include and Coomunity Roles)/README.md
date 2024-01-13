@@ -195,7 +195,9 @@ Now, lets's configure our `uat loadbalancers`. We will be creating two (2) load 
   ![Alt text](Images/Img_09.png)
 
 - Do the same for `Apache`.
+
   ![Alt text](Images/Img_10.png)
+
 - Now, let's push the changes to GitHub, and the pull the changes to our local machine and continue the configuration with VS Code.
 - We will begin by adding the `loadbalancer host` to `Inventory/uat`
 - For Nginx, let's add the following varibales to the `default/main.yml` file.
