@@ -206,8 +206,8 @@ Now, lets's configure our `uat loadbalancers`. We will be creating two (2) load 
   >   - name: myapp1
   >     strategy: "ip_hash" # "least_conn", etc.
   >     servers:
-  >       - web_uat_1:
-  >       - web_uat_2:
+  >       - <Public IP of your WEB SERVER>:
+  >       - <Public IP of your WEB SERVER>:
   > ```
 - Let's configure Apache to run on port 8080
   > `apache_listen_port: 8080`
@@ -218,13 +218,20 @@ Now, lets's configure our `uat loadbalancers`. We will be creating two (2) load 
   >     - { role: nginx, when: enable_nginx_lb and load_balancer_is_required }
   >     - { role: apache, when: enable_apache_lb and load_balancer_is_required }
   > ```
-- In the `env-vars/uat.yml` file, let's enable only the `Ngnix` loadbalancer with the code below:
+- In the `env-vars/uat.yml` file, let's enable only the `Apache` loadbalancer with the code below:
   > ```nginx
-  > enable_nginx_lb: true
-  > enable_apache_lb: false
+  > enable_nginx_lb: false
+  > enable_apache_lb: true
   > load_balancer_is_required: true
   > ```
 - Finally, let's update the `site.yml` file with our loadbalancer play
   ![Alt text](Images/Img_11.png)
 - Now, let's run the playbook with the code below:
-  > `ansible-playbook -i Inventory/uat.yml Playbooks/site.yml`
+  > `ansible-playbook -i Inventory/uat.yml Playbooks/site.yml` > ![Alt text](Images/Img_12.png)
+
+**And there you have it, Our UAT Servers have been configured.**
+
+You can ssh to the individual servers to confirm. Or you can open a web broswers and enter the public ip adddress of your webserver/index.php.
+![Alt text](Images/Img_13.png)
+
+Now, ensure you commint all changes in the `roles-feature` branch and merge with the `main` branch.
