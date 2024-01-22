@@ -354,3 +354,5 @@ Now, let's run `terraform apply` to implement the changes.
 And there you have it.
 
 ![Alt text](Images/Img_17.png)
+
+You can run `terraform destroy` to delete all the items created in this project.
