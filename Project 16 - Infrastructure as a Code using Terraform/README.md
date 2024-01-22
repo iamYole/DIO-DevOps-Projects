@@ -221,3 +221,136 @@ Now, let's run `terraform destory` to delete everything we've created so far, an
 - We've been able to refactor our code to take advantage of dynamic variables.
 - Let's make sure the there are no errors by running `terraform validate`, and then `terraform plan`.
   ![Alt text](Images/Img_08.png)
+
+### Variables and Tfvars files
+
+In the section above, we definded several variable with our `main.tf` file. However, Terraform has a file that can be used specifically for variables called `.tfvars` file. In this section, we will take advantage of this by creating a two new files, `variables.tf` and `terraform.tfvars`.
+
+This will make our code more readable and easier to manage as we won't be having a single file with a long line of code. Our workspace should now contain the following files:
+![Alt text](Images/Img_09.png)
+
+In the `variavles.tf` file, copy and paste the code below:
+
+> ```bash
+> variable "region" {
+>  default = "eu-west-2"
+> }
+>
+> variable "vpc_cidr" {
+>  default = "172.16.0.0/16"
+> }
+>
+> variable "enable_dns_support" {
+>  default = "true"
+> }
+>
+> variable "enable_dns_hostnames" {
+>  default = "true"
+> }
+>
+> variable "preferred_number_of_public_subnets" {
+>  default = null
+> }
+> ```
+
+In the `terraform.tvars` file, copy and paste the code below:
+
+> ```bash
+> region = "eu-west-2"
+>
+> vpc_cidr = "172.16.0.0/16"
+>
+> enable_dns_support = "true"
+>
+> enable_dns_hostnames = "true"
+>
+> preferred_number_of_public_subnets = 2
+>
+> ```
+
+In the `main.tf` file, delete the exiting contents, copy and then paste the followng:
+
+> ```bash
+>
+> # Get list of availability zones
+> data "aws_availability_zones" "available" {
+>  state = "available"
+> }
+>
+> provider "aws" {
+>  region = var.region
+> }
+>
+> # Create VPC
+> resource "aws_vpc" "dio-vpc" {
+>  cidr_block           = var.vpc_cidr
+>  enable_dns_support   = var.enable_dns_support
+>  enable_dns_hostnames = var.enable_dns_support
+>
+>  tags = {
+>    Name = "dio-vpc"
+>  }
+>
+> }
+>
+> # Create public subnets
+> resource "aws_subnet" "public" {
+>  count                   = var.preferred_number_of_public_subnets == null ? length(data.aws_availability_zones.available.names) : var.preferred_number_of_public_subnets
+>  vpc_id                  = aws_vpc.main.id
+>  cidr_block              = cidrsubnet(var.vpc_cidr, 4, count.index + 1)
+>  map_public_ip_on_launch = true
+>  availability_zone       = data.aws_availability_zones.available.names[count.index]
+>
+>  tags = {
+>    Name = "pub_sub_${count.index}"
+>  }
+> }
+>
+> ```
+
+We now have our files properly structured. Let's validate the code by running `terraform validate`.
+
+![Alt text](Images/Img_10.png)
+
+Let's run `terraform plan` to see the execution plan, and if we are ok with the plan.
+
+![Alt text](Images/Img_11.png)
+
+As expected, we are adding/creating 3 new resouces (`VPC` and `two Subnets`). Modifying 0 and destroying 0.
+
+If we are with the plan above, we can run `terraform apply` and let's see how many seconds it would take to create the resources.
+![Alt text](Images/Img_12.png)
+
+The resources have been created. Let's log into the AWS console to verify.
+
+![Alt text](Images/Img_13.png)
+`dio-vpc` created with two subnets `pub_sub_0` and `pub_sub_1`.
+
+![Alt text](Images/Img_14.png)
+The CIDR for both subnets are `172.16.16.0/20` and `172.16.32.0/20`. Both subnets created in `eu-west-2a` and `eu-west-2b`.
+
+Now this is all good, but i'll like to modify following:
+
+- Subnet names changed to `pub_sub_01` and `pub_sub_02`.
+- Subnets created in the CIDR of `172.16.1.0/24` and `172.16.2.0/24`.
+
+To do this, let's modify the following:
+
+- `cidr_block  = cidrsubnet(var.vpc_cidr, 4, count.index + 1)`
+- `cidr_block  = cidrsubnet(var.vpc_cidr, 8, count.index + 1)`
+
+and
+
+- `Name = "pub_sub_${count.index}"`
+- `Name = "pub_sub_${count.index + 1}"`
+
+then run `terraform plan`
+![Alt text](Images/Img_15.png)
+We can see that the script is going to delete the entire subnets, and then recreate it. The modification introduce requires a new subnet to be created,and that's what terrafor is doing. In this situation, we can go ahead as we won't be loosing an data. If this were to be a webserver with userdata or a database with saved data, we will want to take steps to backup exiting files before proceeding.
+
+Now, let's run `terraform apply` to implement the changes.
+![Alt text](Images/Img_16.png)
+
+And there you have it.
+
+![Alt text](Images/Img_17.png)
