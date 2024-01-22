@@ -75,7 +75,7 @@ Now, let's create the subnets:
   >   vpc_id                  = aws_vpc.dio-vpc.id
   >   cidr_block              = "172.16.0.0/24"
   >   map_public_ip_on_launch = true
-  >   availability_zone       = "eu-central-1a"
+  >   availability_zone       = "eu-west-2a"
   >
   >  tags = {
   >     Name = "pub_sub_1"
@@ -88,7 +88,7 @@ Now, let's create the subnets:
   >   vpc_id                  = aws_vpc.dio-vpc.id
   >   cidr_block              = "172.16.1.0/24"
   >   map_public_ip_on_launch = true
-  >   availability_zone       = "eu-central-1b"
+  >   availability_zone       = "eu-west-2b"
   > }
   >
   >  tags = {
@@ -105,3 +105,119 @@ Now, let's create the subnets:
 In the previous section, created a VPC and two subnets, but values of several attibutes were hard coded. For example, the values of the region and availablity zone were hard coded. We can make the code look better and easier to manage by introducing variables.
 
 Now, let's run `terraform destory` to delete everything we've created so far, and then recreate the infrastructure using a well written configuration insted. Confirm the VPC and subnets have been deleted from the AWS Console and let's start again.
+
+- Let's start by creating a variable for the region. Delete the contents of the `main.tf` file, and replace them with the code below:
+
+  > ```bash
+  > variable "region" {
+  >     default = "eu-west-2"
+  > }
+  >
+  > variable "vpc_cidr" {
+  >     default = "172.16.0.0/16"
+  > }
+  >
+  > variable "enable_dns_support" {
+  >     default = "true"
+  > }
+  >
+  >  variable "enable_dns_hostnames" {
+  >     default = "true"
+  > }
+  >
+  >  provider "aws" {
+  >     region = var.region
+  > }
+  >
+  >  # Create VPC
+  >  resource "aws_vpc" "main" {
+  >     cidr_block           = var.vpc_cidr
+  >     enable_dns_support   = var.enable_dns_support
+  >     enable_dns_hostnames = var.enable_dns_hostnames
+  >  }
+  > ```
+
+  The code above will produce the same execution plan as the previous code, but we've been able to take advantage of variables in defining some attributes such as region, cidr etc. With this, we can easily change the region our infrastructure will be created in by modifying just one line of code.
+
+- Now, let's create the subnets. While doing this, another interesting concept would be introduced. In AWS, each region has a min of 2 availablitiy zone and up to a max of 5 in some regions. Instead of creating a variable for each availability zone, we will be introducing loops and data sources in terraform.
+- In the `main.tf` file, copy and paste the code below
+
+  > ```bash
+  > #Get list of availability zones
+  > data "aws_availability_zones" "available" {
+  >     state = "available"
+  > }
+  >
+  > # Create public subnet1
+  > resource "aws_subnet" "pub_sub" {
+  >     count                   = 2
+  >     vpc_id                  = aws_vpc.vio_vpc.id
+  >     cidr_block              = "172.16.1.0/24"
+  >     map_public_ip_on_launch = true
+  >     availability_zone       = data.aws_availability_zones.available.names[count.index]
+  >
+  > tags = {
+  >       Name = "pub_sub_${count.index + 1}"
+  >  }
+  >
+  > }
+  > ```
+
+  In the code above, we created a variable called `count` within the subnet block. The variable has a value of 2 meaning we would be creating two subnets. The value for the availablity zone also takes advantage of the data source created above the subnet creation. `data.aws_availability_zones.available` returns the names of all the availablity zones in the region, then adding the `[count.index]` returns the name of the first and second availability*zone. We could also specify 3 if we want a subnet in three of the availablity zones in `eu-west-2`. Lastly, the `tags` is used to name each subnet. `"pub_sub*${count.index + 1}"` is will name each subnet appending a number (1 or 2) to "pub*sub*".
+
+- With the code above, we will have a runtime error because the first iteration will create the first subnet using the hard coding value of `172.16.1.0/24`. The code will attempt to create the second subnet using the same hard coding subnet, and that's when we will encounter an error. To fix this, we will be using a function `cidrsubnet()`.
+- Now, let's modify the code below
+
+  > `cidr_block = "172.16.1.0/24"`
+
+  with
+
+  > `cidr_block = cidrsubnet(var.vpc_cidr, 8, count.index+1)`
+
+  This new line is using the _cidrsubnet_ function to dynamically generate CIDR blocks for subnets within a larger CIDR block. Let's break down the components:
+
+  - `var.vpc_cidr`: This variable was defined earlier representing the CIDR block of the VPC `172.16.0.0/16`.
+  - `8`: This is the subnet mask length or the number of bits used for the network portion of the subnet. In CIDR notation, it represents a subnet with 2^8 (256) IP addresses. So, each subnet created will have 256 IP addresses.
+  - `count.index + 1`: Each iteration starts at 0 and the next 1. Adding + 1 to `count.index` makes the network address start at 1 instead of 0. So our subnet network address would be:
+    - 172.16.1.0/24
+    - 172.16.2.0/24
+  - Terrform has a nice tool to test this out. From the console, type `terraform console` to start the terraform console.
+  - In the terraform console, type `cidrsubnet("172.16.0.0/16", 4, 1)` to see the addresses the network address that would be created.
+
+    ![Alt text](Images/Img_07.png)
+
+- Since we are optimizing the codes, we could as well remove the hard coded count of 2. Imagine if we decide to change the region and then create 4 subnets instead 2, that would require a lot of changes to our code. To fix this, we will be introducing the `length()` function to our code.
+- Let's replace the line of code below:
+
+  > `count  = 2`
+
+  with
+
+  > `count = length(data.aws_availability_zones.available.names)`
+
+  The new line of code will return the number of available availablity zones on the region. For the region I selected `eu-west-2`, there are three AZz `["eu-west-2a", "eu-west-2b", "eu-west-2c"]`
+
+- We can sucessfully run the code with no errors. However, this is going to create 3 subnets, but we wnat just 2.
+- To fix the new issue and limit the subnets created to just 2, we will be introducing a new variable in our `main.tf` file.
+  > ```bash
+  >  variable "preferred_number_of_public_subnets" {
+  >      default = 2
+  > }
+  >
+  > ```
+- Now let update the line below:
+
+  > `count                   = length(data.aws_availability_zones.available.names)`
+
+  with
+
+  > ```bash
+  > count                   = var.preferred_number_of_public_subnets == null ? length(data.aws_availability_zones.available.names) : var.preferred_number_of_public_subnets
+  > ```
+
+  - If `var.preferred_number_of_public_subnets` is null, it uses `length(data.aws_availability_zones.available.names)` to determine the number of subnets to create.
+  - If `var.preferred_number_of_public_subnets` is not null, it uses the specified value for count.
+
+- We've been able to refactor our code to take advantage of dynamic variables.
+- Let's make sure the there are no errors by running `terraform validate`, and then `terraform plan`.
+  ![Alt text](Images/Img_08.png)
