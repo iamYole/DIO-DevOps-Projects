@@ -1,4 +1,4 @@
-# Infrastructure as a Code (Iac) using Terraform in AWS
+# Infrastructure as a Code (IaC) using Terraform in AWS
 
 nfrastructure as Code (IaC) is a methodology that involves managing and provisioning computing infrastructure through machine-readable script files, rather than through physical hardware configuration or interactive configuration tools. With IaC, you describe your infrastructure's configuration using a high-level programming language or a domain-specific language (DSL), and then use a tool to automate the provisioning and management of those resources.
 
@@ -207,7 +207,7 @@ Now, let's run `terraform destory` to delete everything we've created so far, an
   > ```
 - Now let update the line below:
 
-  > `count                   = length(data.aws_availability_zones.available.names)`
+  > `count = length(data.aws_availability_zones.available.names)`
 
   with
 

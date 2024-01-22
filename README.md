@@ -28,7 +28,7 @@
     In this project, we will explore more on Ansible, specifically using Imports and Assignments to organise and struture our playbooks efficiently.
 14. Project 14 - [More on Ansible 2 (Dynamic Assignments(Include) and Community Roles)](<https://github.com/iamYole/DIO-Projects/tree/main/Project%2014%20-%20More%20on%20Asible%202%20(Include%20and%20Coomunity%20Roles)>)  
     In this project, we will expore more way to structure our ansible project using the **Include** feature. We will also expore some community or pre-built roles in ansible.
-15. Project 15 - [Implementing Networking Concepts in AWS (VPC, Subnets, IG, NAT, Routing, etc)](https://github.com/iamYole/DIO-Projects/tree/main/Project%2015%20-%20Networking%20in%20AWS)  
+15. Project 15 - [Implementing Networking Concepts in AWS (VPC, Subnets, IG, NAT, Routing, etc)](https://github.com/iamYole/DIO-Projects/blob/main/Project%2015%20-%20Networking%20in%20AWS/README.md)  
     In this Project, we will be setting up and configuring various AWS services to build a scalable, secure, and efficient network infrastructure. We will do this by creating Virtual Private Cloud (VPC), Private and Public Subnets, Internet Gatway (IG),, NAT Gateway, Security Groups, Network ACL etc.
-16. Project 16 - [Infrastructure as a Code (Iac) using Terraform in AWS]()  
+16. Project 16 - [Infrastructure as a Code (IaC) using Terraform in AWS](https://github.com/iamYole/DIO-Projects/blob/main/Project%2016%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform/README.md)  
     In this project, we wil be learning a concept called Infrastructure as a Code (IaC) to manage and provision cloud resources. Iac is all about using code rather than manual processes to create and provision our infrastructures. Terraform is a popular IaC tool that enables you to define and deploy infrastructure across various cloud providers, including AWS.
