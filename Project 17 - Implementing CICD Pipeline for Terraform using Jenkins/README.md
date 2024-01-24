@@ -94,3 +94,80 @@ Let's begin:
   ![Alt text](Images/Img_05.png)
 
 ### Part 2 - Setting up Jenkins for Terraform CI/CD.
+
+CI/CD is associated with software development and deployment most of the time. However, since we now have the luxury of writing codes to automate the creation of cloud infrastructures, we can as well treat this the same way we treat the continous integration and deployment of softwares.
+
+Implementing CI/CD (Continuous Integration/Continuous Deployment) in the context of Infrastructure as Code (IaC) offers several benefits, enhancing the efficiency, reliability, and overall development lifecycle of infrastructure provisioning and management. Some of these benefits includes:
+
+- Faster Delivery of Infrastructure Changes
+- Reduction to Human Errors
+- Consistency Across Environments(Dex, Stage, Prod)
+- Scalability and Resource Efficiency etc.
+
+With the last point above `Scalability and Resource Efficiency` in mind, let's imagine we have an existing infrastructure that needs changes. As a DevOps Enginerr, we've ben tasked with adding some resources to scale up our network architecture. The base or exiting code is currently stored in a Git Repository, so let's configure jenkins to have access to our Git Repository.
+
+- First of all, we need to fork the [terraform-aws-pipeline](https://github.com/dareyio/terraform-aws-pipeline) github repository to our github account. This will make it possible to push the changes we make to the existing code.
+- Make sure git is installed on the EC2 Instance and configured to push changes to to github.
+- Clone the [terraform-aws-pipeline](https://github.com/dareyio/terraform-aws-pipeline) repository to start making changes.
+- In your AWS console, create an S3 buck to store the state of our instrasture, and then navigate to the `provider.tf` file to update it with our newly created S3 bucket.
+  ![Alt text](Images/Img_06.png)
+  From the code above, the S3 bucket i created is called `g-terra-state`. The value of the `key` attribute is the path within the S3 bucket where the state file would be stored.
+- Run `terraform init` and then `terraform plan`. If you are satisfied with the plan, commit and the push the changes to github.
+
+We now have our git repo with the exsiting base code. It's time to connect the `terraform-aws-pipeline` to Jenkins.
+
+- Ensure the `jenkins-server` image is running on docker using the `docker ps` command.
+- if it's not, run the command below:
+
+  - `docker images` to get the image ID of the Jenkins image
+  - or `docker ps -a` see all stopped container.
+  - then `docker start` and the container name to start the container.
+
+  ![Alt text](Images/Img_07.png)
+
+- If the the container is running, launch the
+  `jenkins-server` from a web browser and start installing the required plugins.
+- From the `jenkins-server` navigate to Manage Jenkins > Plugins > Available Plugins.
+- Search for **GitHub Integration**, and then install the plugin.
+  ![Alt text](Images/Img_08.png)
+- Upon sucessful installation, click on restart jenkins. If this page takes forerver to load, restart the web browser and also confirm the container is still running.
+- After Jenkins has restarted, Navigate to Manage Jenkins > Plugins > Installed Plugins. Search for the installed plugin and make sure it is enabled
+  ![Alt text](Images/Img_09.png)
+  This plugin mainly connects Jenkins to GitHub and enables Jenkins jobs to automatically perform tasks such as building and testing of codes.
+- New, let's also install the other required plugins below:
+
+  - `Terraform Plugin`
+  - `AWS Credential Plugin`
+
+  ![Alt text](Images/Img_10.png)
+
+Now, let's confirgure GitHub to accept connection requests from Jenkins.
+
+- In your Guthub account, navigate to `profile` > `settings` > `development settings`
+
+- Click on the `Personal access tokens` drow-down menu > `Tokens (Classic)` and then `Generate new Token`. Select `Generate new token (classic)`
+  ![Alt text](Images/Img_11.png)
+- In the `New personal access token (classic)` page, make the following selections:
+  - In the note section, give it a name `jenkins-authentication`
+  - In the expiration section, feel free to leave the default 30days
+  - in the Scope selection section, select just `Repo` and the click on generate token.
+    ![Alt text](Images/Img_12.png)
+  - Copy the generate key
+    ![Alt text](Images/Img_13.png)
+- Back to Jenkins, navigate to Manage Jenkins > Credentials.
+- Click on the down arrow next to `(global)` to add a new credential.
+  ![Alt text](Images/Img_14.png)
+  in the `New credentials` page, make the followind modifications:
+  - In the Kind section, select username with password
+  - Leave the scope in the default selection
+  - provide the email address/username name to your github account
+  - paste the generated key as the password
+  - in the ID section, give a name like `Github-Authentication`. Note that spaces aren't allowed
+  - Feel free to give a description of the key, and then click create.
+    ![Alt text](Images/Img_15.png)
+    The new credentials has now been created.
+- Repeat the step above for `AWS Credential`
+  - Here, you can create a new IAM User specifically for this purpose, and the create an access and secret key that would be used to authenticate the user.
+    ![Alt text](Images/Img_16.png)
+
+### Part 3 - Setting up a Multibranch Pipeline
