@@ -171,3 +171,220 @@ Now, let's confirgure GitHub to accept connection requests from Jenkins.
     ![Alt text](Images/Img_16.png)
 
 ### Part 3 - Setting up a Multibranch Pipeline
+
+- From the Jenkins Dashboard, click on new item and the give it a name `Terraform-CICD`
+- Scroll down and select `Multibranch Pipeline` and then click ok.
+- Give the pipeline a name and description
+- In the Branch Sources, click on it and then select GitHub
+  - Select the credientials
+  - copy and paste the forked repository
+    ![Alt text](Images/Img_17.png)
+- Leave everthing else in the default setting and click save. Jenkins will automatically scan the repository to locate the Jenkins File.
+  ![Alt text](Images/Img_18.png)
+- You make encounter few errors at this stage
+  - Unable to locate the `AWS Cred`. Navigate to the JenkinsFile on git and ensure the `credentialsId` has the same name as the ID in our aws credtials.
+  - `Scripts not permitted to use method ....`. Jenkins has a security mechanism in place to prevent the execution of potentially unsafe or dangerous scripts. The use of certain methods or classes may be restricted, and an administrator needs to explicitly approve them. To resolve this, do the follow: 1. Go to your Jenkins instance.
+    Navigate to "Manage Jenkins" > "In-process Script Approval." 2. Find the signature that is not permitted, and then click approve. Do the same for other scripts if they require explict approvals.
+- After all errors has been rectified, the script should build sucessfully.
+
+Now, let's take a deeper look at the JenkinsFile, and ways it could be improved.
+
+> ```groovy
+> pipeline {
+>    agent any
+>
+>    environment {
+>        TF_CLI_ARGS = 'color'
+>    }
+>
+> ```
+
+- The `pipeline` block defines the entire Jenkins pipeline.
+- `agent any` specifies that the pipeline can run on any available agent (Jenkins agent/executor).
+- The `environment` block is used to define enviroment variables, and `TF_CLI_ARGS` here was used to enable colourd output for Terraform commands
+
+> ```groovy
+> stages {
+>        stage('Checkout') {
+>            steps {
+>                script {
+>                    checkout scm
+>                }
+>            }
+>        }
+> }
+> ```
+
+- The `stages` block contains individual stages within the pipeline.
+- `stage('Checkout')` defines a stage named "Checkout" for checking out the source code. This is necessary in other to build the code.
+- The `script` block contains commands to be executed within this stage, and the `checkout scm` command within the script blocks checks out from git. This is necessary to build the code.
+
+> ```groovy
+> stage('Terraform Plan') {
+>            steps {
+>                script {
+>                    withCredentials([aws(credentialsId: 'AWS-Authentication', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+>                        sh 'terraform init'
+>                        sh 'terraform plan -out=tfplan'
+>                    }
+>                }
+>            }
+>        }
+> }
+> ```
+
+- `stage('Terraform plan')` defines a stage for planning Terraform execution.
+- The `steps` block contains sets of instructures or tasks to be executed within this stage.
+- `withCredentials` is a Jenkins Pipeline step that allows you to temporarily use credentials, and in this case, we are using the AWS credentials saved earlier.
+- Within the `script` block we are running the `terrafor init and terraform plan commands`
+- `-out=tfplan` option creates a plan file named "tfplan" to capture the planned changes to the infrastructure.
+
+> ```groovy
+> stage('Terraform Apply') {
+>            when {
+>                expression { env.BRANCH_NAME == 'main' }
+>                expression { currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null }
+>            }
+>            steps {
+>                script {
+>                    // Ask for manual confirmation before applying changes
+>                    input message: 'Do you want to apply changes?', ok: 'Yes'
+>                    withCredentials([aws(credentialsId: 'AWS-Authentication', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+>                        sh 'terraform init'
+>                        sh 'terraform apply -out=tfplan'
+>                    }
+>                }
+>            }
+>        }
+> ```
+
+- `stage('Terraform Apply')` defines a stage for applying the Terraform execution plan.
+- The `when` blocks is used to define some conditions that needs to be met before running the stage.
+- `expression { env.BRANCH_NAME == 'main' }` give a condition to only run if branch being built is named "main."
+- `expression { currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null }`: The stage runs only if the build was triggered by a user (not an automatic trigger).
+
+### Step 4 - Code Improvement
+
+The code above should build the infrastructe as we want, but there are few enhancement required to make the code roboust. For instance, we need to include logging functionalities to know what's going on at each step. This can also be used to debugging purposes. We also need to include a mechanism for error handling as well as `code linting`. Linting code refers to the process of analyzing code to find potential errors, stylistic inconsistencies, and adherence to best practices. It's like having a meticulous editor review your writing for grammar, style, and clarity.
+
+Now, let's re write the code with these improvements in mind.
+
+1. > ```groovy
+   > /* Validate and lint Terraform configuration */
+   >     stage('Terraform Validate and Lint') {
+   >         steps {
+   >             script {
+   >                 withCredentials([aws(credentialsId: 'AWS-Authentication', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+   >                 //sh 'terraform init'
+   >                 echo 'Validating Terraform configuration'
+   >                 sh 'terraform validate'
+   >                 echo 'Validation completed sucessfully'
+   >
+   >                 echo 'Linting Terraform files'
+   >                 try {
+   >                     def fmtOutput = sh(script: 'terraform fmt -check', returnStdout: true).trim()
+   >                     if(fmtOutput.isEmpty()){
+   >                         echo 'Lint check completed sucessfully'
+   >                     }else{
+   >                         echo "Terraform formatting issues found:\n${fmtOutput}"
+   >                         currentBuild.result = 'FAILURE'
+   >                     }
+   >
+   >                 } catch (err) {
+   >                     currentBuild.result = 'FAILURE'
+   >                     error("Terraform linting failed: ${err}")
+   >                 }
+   >                 }
+   >             }
+   >         }
+   >     }
+   >
+   > ```
+
+   - This stage performs Terraform configuration validation using the `terraform validate` command and linting using the `terraform fmt -check command`. If linting fails, it sets the build result to 'FAILURE' and raises an error to indicate the failure. The `try-catch` block ensures that the pipeline continues to execute even if linting fails, allowing for better visibility into the issues. Also, a log message displaying the outcome of each task was also included. Note, it is necessary you perform the validation and lint checks on your local machine before deploying to git. This will ensure errors are not encountered at this stage. However, checking for errors here is also necessary.
+
+2. > ```groovy
+   > /* Generate Terraform plan */
+   >     stage('Terraform Plan') {
+   >         steps {
+   >             script {
+   >                 withCredentials([aws(credentialsId: 'AWS-Authentication', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+   >                    //sh 'terraform init'
+   >                     sh 'terraform plan -out=tfplan'
+   >                     echo 'Terraform Plan stage completed sucessfully'
+   >                 }
+   >             }
+   >         }
+   >     }
+   > ```
+
+   - The `Terraform Plan` stage runs the `Terraform plan`, and saves the output to a file called `tplan`. Just like the above step, we will be displaying a message after the sucessful completion of this set.
+
+3. > ```groovy
+   >     /* Apply Terraform plan (only for main branch and manual triggers) */
+   > stage('Terraform Apply') {
+   >     when {
+   >         expression { env.BRANCH_NAME == 'main' }
+   >         expression { currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null }
+   >     }
+   >     steps {
+   >         script {
+   >             // Define the input step with a default value of 'No'
+   >             def userInput = input(
+   >                 id: 'userInput',
+   >                 message: 'Do you want to apply changes?',
+   >                 parameters: [string(defaultValue: 'No', description: 'Enter "Yes" to apply changes', name: 'confirmation')],
+   >                 submitter: 'auto'
+   >             )
+   >
+   >             // Check if the user input is 'Yes'
+   >             if (userInput == 'Yes') {
+   >                 withCredentials([aws(credentialsId: 'AWS-Authentication', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+   >                     //sh 'terraform init'
+   >                     sh 'terraform apply -input=false -auto-approve tfplan'
+   >                     echo 'Terraform apply stage completed successfully. Resources built'
+   >                 }
+   >             } else {
+   >                 echo 'Skipping Terraform apply stage as user chose not to apply changes.'
+   >             }
+   >         }
+   >     }
+   > }
+   > ```
+
+   - The `Terraform Apply` stage is where our infrastructure gets built. Improving from the previous code, I've introduced a `submitter` to automatically submit a resoponse to the userInput parameter. This was done by specifying the `defaultValue` to `No`. You can change this to `Yes` if you want to apply the changes. I ran the first job using a defaultvalue of `Yes` and it took over 30mins in creating the EKS Cluster. Selecting `No` will save time and cost and automatically skip this step and move on to the next gracefully.
+     ![Alt text](Images/Img_20.png)
+
+4. > ```groovy
+   > /* Cleanup stage */
+   >     post {
+   >         always {
+   >             script {
+   >                 withCredentials([aws(credentialsId: 'AWS-Authentication', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+   >                     echo 'Waiting for 3 minutes before cleanup...'
+   >                     sleep(time: 3, unit: 'MINUTES')  // Delay for 3 minutes
+   >
+   >                     echo 'Cleaning up workspace'
+   >                     sh 'terraform destroy -auto-approve'  // Always destroy applied resources
+   >                     deleteDir()
+   >                 }
+   >             }
+   >         }
+   >     }
+   > ```
+
+   - This section defines post-build actions to be executed after all stages in the pipeline have completed. The post tag ensure all task within it are executed regardless of the pipeline's overall result (success or failure). For the clean up action, after applying the execution plan, the script will wait for 3mins before initiating the `terraform destroy` command. The 3mins wait give us enough time to log into our AWS console to inspect the changes being made (EKS Creation). After 3mins has elapsed, the `terraform destroy` command will delete all the resources created by this pipeline as well as delete any directory created in the jenkins docker image. In production enviroment, this step can be used to notify relevant stakeholders of the sucessful deployment of our infrasture or otherwise.
+     ![Alt text](Images/Img_19.png)
+     Image of the EKS cluster created by the pipeline from the apply stage when the default value was set to yes.
+
+#### Summary
+
+In summary, we've improved on the exiting the code significantly by adding the following:
+
+- Logging the outcome (Success or Failure) of all task at each stage. This message can be viewed from the console output of our MultiBranch Pipeline
+- We added a stage to validate our pipeline and perform a lint check to ensure the code has been written to standard. If they code (`main.tf`) was short of standard, the deployment would be aborted.
+- We also removed the manual input required in applying the change or not. This automated response would make it more convienent for DevOps Engineers to initite the pipeline build process and wait for the outcome.
+- To save cost for our development environment, we introduced the `clean up` stage in the post directive of the pipeline to delete all resources created here after 3mins. This can be increased or reduced depending on your requirement.
+- Not covered here, but could improve the overall experince of this pipeline is introducing a GitHub Webhook to automatically start the build process after every commit.
+
+The completed full code can be found [here](https://github.com/iamYole/terraform-aws-pipeline/blob/main/Jenkinsfile).
