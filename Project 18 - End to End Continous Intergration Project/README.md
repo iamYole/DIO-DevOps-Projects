@@ -83,3 +83,157 @@ Both SIT – For System Integration Testing and UAT – User Acceptance Testing 
 We will be using Nginx to serve as a reverse proxy for our sites and tools. Each environment setup is represented in the below table and diagrams.
 
 ![alt text](Images/Img_02.png)
+
+#### DNS Requirements
+
+For this project, we would need to create different subdomains for each environment. I have a domanin **iamyole.uk** and from that domain, i'll be creating several subdomains as follows:
+|Servers |Subdomains |
+--- | --- |
+|Jenkins|www.ci.infradev.iamyole.uk|
+|Sonarqube|www.sonarqube.infradev.iamyole.uk|
+|Artifactory|www.artifacts.infradev.iamyole.uk|
+|Production Tooling|www.tooling.iamyole.uk|
+|Pre-Prod Tooling|www.tooling.preprod.iamyole.uk|
+|Pentest Tooling|www.tooling.pentest.iamyole.uk|
+|UAT Tooling|www.tooling.uat.iamyole.uk|
+|SIT Tooling|www.tooling.sit.iamyole.uk|
+|Dev Tooling|www.tooling.dev.iamyole.uk|
+|Production TODO-WebApp|www.todo.iamyole.uk|
+|Pre-Prod TODO-WebApp|www.todo.preprod.iamyole.uk|
+|Pentest TODO-WebApp|www.todo.pentest.iamyole.uk|
+|UAT TODO-WebApp|www.todo.uat.iamyole.uk|
+|SIT TODO-WebApp|www.todo.sit.iamyole.uk|
+|Dev TODO-WebApp|www.todo.dev.iamyole.uk|
+
+Let's log into our Jenkins-Ansible server and inspect the current Inventory directory. This is what we have currently.
+![alt text](Images/Img_03.png)
+
+Now, lets create a new branch, add three (3) environments to the inventory file, and then commit to the new branch. We will be working with the new branch until we are satisfied with our changes, before merging to the main branch:
+
+- CI
+- Pentest
+- PreProd
+
+Our inventory directory should now look this:
+![alt text](Images/Img_04.png)
+
+Before we start writing the Inventory file for each environment, let's provision the servers in aws begining with the CI environment.
+
+### The CI Environment
+
+For this, we need Four(4) Servers, all running on Ubuntu:
+
+- Jenkins
+- Nginx
+- Sonarqube
+- Artifact_Repository
+
+![alt text](Images/Img_05.png)
+
+Let's get the private IP address and write the ansible inventory file for the CI environment.
+
+> ```yml
+> all:
+>  vars:
+>    ansible_ssh_private_key_file: /home/keys/dio_key.pem
+>
+>  hosts:
+>    jenkins:
+>      ansible_host: 172.31.36.144
+>      ansible_user: ubuntu
+>    nginx:
+>      ansible_host: 172.31.47.1
+>      ansible_user: ubuntu
+>    artifact_repository:
+>      ansible_host: 172.31.34.118
+>     ansible_user: ubuntu
+>    sonarqube:
+>      ansible_host: 172.31.47.236
+>      ansible_user: ubuntu
+>
+>  children:
+>    ci_env_all:
+>      hosts:
+>        jenkins:
+>        nginx:
+>        artifact_repository:
+>        sonarqube:
+>
+> ```
+
+After the inventory file has been created, i like pinging the servers to ensure they are reachable. This will help in detecting an errors at an early stage.
+![alt text](Images/Img_08.png)
+
+### The DEV Environment
+
+For this enviroment, we would need 4 servers also:
+
+- Tooling-WebApp
+- TODO-WebApp
+- nginx
+- db
+
+Let's go ahead in creating the EC2 Instances and the update the `dev.yml` file.
+![alt text](Images/Img_06.png)
+
+> ```yml
+> all:
+>   vars:
+>     ansible_ssh_private_key_file: /home/keys/dio_key.pem
+>
+>   hosts:
+>     tooling:
+>       ansible_host: 172.31.41.31
+>       ansible_user: ubuntu
+>     todo:
+>       ansible_host: 172.31.47.126
+>       ansible_user: ubuntu
+>     nginx:
+>       ansible_host: 172.31.33.204
+>       ansible_user: ubuntu
+>     db:
+>       ansible_host: 172.31.42.200
+>       ansible_user: ec2-user
+>       ansible_python_interpreter: /usr/bin/python
+>
+>   children:
+>     webservers:
+>       hosts:
+>         tooling:
+>         todo:
+> ```
+
+Note, the `db` server above is running on Linux RedHat, while the others are running on Ubuntu OS.
+
+Ping the servers in the Dev eniroment for confirmation
+![alt text](Images/Img_09.png)
+
+### The PenTest Environment
+
+For this enviroment, we need just two servers, `Tooling` and `TODO`.
+![alt text](Images/Img_07.png)
+
+> ```yml
+> all:
+>   vars:
+>     ansible_ssh_private_key_file: /home/keys/dio_key.pem
+>
+>   hosts:
+>     pentest_tooling:
+>       ansible_host: 172.31.42.183
+>       ansible_user: ubuntu
+>     pentest_todo:
+>       ansible_host: 172.31.37.200
+>       ansible_user: ubuntu
+>
+>   children:
+>     pentest_servers:
+>       hosts:
+>         pentest_tooling:
+>         pentest_todo:
+> ```
+
+Ping the servers in this eniroment for confirmation
+![alt text](Images/Img_10.png)
+
+### Creating Ansible Roles for the CI Environment
