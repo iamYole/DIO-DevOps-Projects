@@ -237,3 +237,200 @@ Ping the servers in this eniroment for confirmation
 ![alt text](Images/Img_10.png)
 
 ### Creating Ansible Roles for the CI Environment
+
+In this section, two new roles would be added to our project, and they are:
+
+- SonarQube
+- Artifactory.
+
+**SonarQube** is a widely-used open-source platform for continuous inspection of code quality and security. It provides developers and teams with a comprehensive set of tools to detect bugs, vulnerabilities, code smells, and other quality issues in their source code. I have a tutorial here - [Installing and Configuring SonarQube on Ubuntu 20](https://github.com/iamYole/Installing-and-Configuring-SonarQube/blob/main/README.md) on how to manually install and configure SonarQube
+
+**Artifactory** is a repository manager created by JFrog designed to manage artifacts generated and used in the software development process. It serves as a central repository for storing and managing artifacts such as JAR files, Docker images, npm packages, Python packages, and many others.
+
+### Configuring Jenkins for Ansible Deployment
+
+In previous sections, we've been provisionning and configuring servers directly from Ansible playbooks. In this section, we will configure Jenkins to intract with Ansible for these tasks.
+
+If you haven't already installed and cofiguref Jenkins, the instructions on how to do this can be found here - [Continuous Integration and Continuous Delivery (CI/CD) with Jenkins](https://github.com/iamYole/DIO-Projects/blob/main/Project%2011%20-%20CI%20CD%20With%20Jenkins/README.md). Once done, log into the Jenkins Server and then install the Blue Ocean Plugin
+![alt text](Images/Img_11.png)
+
+- After the Blue Ocean plugin has been installed, in the left page, you should see the Blue Ocean icon, click on it to switch to the Blue Ocean View.
+  ![alt text](Images/Img_12.png)
+- Click on New Pipeline and then select GitHub.
+  ![alt text](Images/Img_13.png)
+- Click on the link that says "Create an asscess token here". This should take you to a GitHub, log in with your credentials to access the page for token creation.
+  ![alt text](Images/Img_14.png)
+- Provide a name for the token, ensure the `Repo` checkbok is checked to provide full control of the repository to Jenkins, and then Create Token.
+- Copy the token back to Jenkins/Blue Ocean, and then select Ansible Project repository you've been working on.
+- After all has been done, the pipeline would be created. However, we would need to manually create `Jenkins` file in the ansible project to complete the setup.
+- Log into the Jenkins Server console, in the home directory of our Ansible project, create a new directory called Deploy, and then create a new Jenkins File in the directory. The directory structure should now look like the image below
+
+  ![alt text](Images/Img_16.png)
+
+- Copy and paste the code below to the Jenkins File.
+  > ```groovy
+  > pipeline {
+  >    agent any
+  >
+  >  stages {
+  >    stage('Build') {
+  >      steps {
+  >        script {
+  >          sh 'echo "Building Stage"'
+  >        }
+  >      }
+  >    }
+  >  }
+  > }
+  > ```
+- This is just a test file. It creates a stage called 'Build' and echos "Building stage to the console".
+- Commint and push the changes to GitHub, then go back to Jenkins > The Ansible Project and the configure
+  ![alt text](Images/Img_17.png)
+- Scroll down to Build Configuration and in the script field, type in the directory path of the Jenkins file and then save.
+  ![alt text](Images/Img_18.png)
+- The pipeline should be built automatically. You can also init the build from the Blue Ocean page for a different and more inutivie UI.
+  ![alt text](Images/Img_19.png)
+
+Let's test the Multi Branch feature. Create a new branch called `feature/multibranch`. Modify the `Jenkins` file to add a new stage called test. Code below:
+
+> ```groovy
+> pipeline {
+>    agent any
+>
+>  stages {
+>    stage('Build') {
+>      steps {
+>        script {
+>          sh 'echo "Building Stage"'
+>        }
+>      }
+>    }
+>
+>    stage('Test') {
+>      steps {
+>        script {
+>          sh 'echo "Testing Stage"'
+>        }
+>      }
+>    }
+>  }
+> }
+> ```
+
+- Save and commit the changes made in the new branch to Git.
+- Back in jenkins, click on the Ansible Project, and on the left pane, click on scan now. This will recognise the new Jenkins File in the new branch.
+- This will automatically trigger a new build and the build pipeline showing the new stage can also be seen. Also notice that branch now shows the newly created branch.
+  ![alt text](Images/Img_20.png)
+
+All we've done so far is run our Jenkins file from our GitHub Repository, Now, let's configure Jenkins to be able to run our ansible playbooks.
+
+- Let's start by installing the Ansible plugin on Jenkins
+- As we will now be running our Ansible Playbooks from Jenkins, we need to give Jenkins access to the Server where the playbooks would run.
+- To do this, Navigate to the Jenkins Dashboard > Manage Jenkins > Credentials, and then add a new global credential.
+  ![alt text](Images/Img_21.png)
+- Provide an name for the ID and Description. For the username, provide the username used to ssh to server, and the copy and paste the value of private key into the private key section.
+  ![alt text](Images/Img_22.png)
+- Next, we need to configure the ansible plugin. To do this, Navigate the the Jenkis Dashboard > Manage Jenkins > Tools, and then scroll down to the Ansible Section. Provide the information as displayed in the image below and then save.
+  ![alt text](Images/Img_23.png)
+
+### Provisioning the Servers for the Development Environment
+
+Now, let's provision our webservers in the development environment from Jenkins.
+
+First, we need to ensure our ansible playbooks and folder structure is in order. I did a little modification to the files and I'll paste the contents below:
+
+1. roles/webservers/task/main.yml
+   > ```yml
+   > ---
+   > - name: install git
+   >  become: true
+   >  ansible.builtin.apt:
+   >    name: "git"
+   >    state: present
+   > ```
+
+This is the custom defined role defination of webservers. Here, i want all webservers to have git installed. All other applications necessary for the webservers can also be definded here.
+
+2. static-assignments/devwebservers.yml
+   > ```yml
+   > ---
+   > - hosts: dev-webservers
+   >  roles:
+   >    - webservers
+   >
+   > - hosts: dev-webservers
+   >  roles:
+   >    - apache
+   >
+   > - hosts: db
+   >  roles:
+   >    - mysql
+   > ```
+
+In this file, i defined the roles i want installed for our development evnironment servers. Here, three roles would be applied to the dev servers
+
+- Our custom definded role called webservers. This would be installed on all the servers
+- apache. The apache role from the ansible community roles would be installed on the webservers
+- mysql. Also from the ansible community roles, MySQL would be installed on the DB server alone. Please refer to previous sections on the `dev.yml` file.
+
+3. Playbooks/site.yml
+   > ```yml
+   > ---
+   > - hosts: dev-webservers
+   > - name: Provisioning the Dev_Env Webservers
+   >    import_playbook: ../static-assignments/devwebservers.yml
+   >
+   > ```
+
+This would be the entry point of the playbook, here, we are dynamically importing the playbook for devwebservers.
+
+Now, lets write our jenkins script to run the playbook
+
+- From Jenkins dashboard, click on new item, and then pipeline. Give the pipeline a name and click create.
+  ![alt text](Images/Img_24.png)
+- Scroll down to the pipeline section and start writing the script. Jenkins has a very nice tool to generate scripts. See this [Youtube video](https://www.youtube.com/watch?v=PRpEbFZi7nI) from Java Home Cloud to see how to use it.
+- The final script should be very similar to the code below. Let's understand what each stage is doing.
+
+  > ```groovy
+  > pipeline {
+  >    agent any
+  >
+  >    environment {
+  >      ANSIBLE_CONFIG="${WORKSPACE}/deploy/ansible.cfg"
+  >    }
+  >
+  >    stages {
+  >        stage('Cleaning up and initializing the environment') {
+  >            steps {
+  >                dir("${WORKSPACE}") {
+  >                deleteDir()
+  >              }
+  >            }
+  >        }
+  >
+  >        stage('Checkout SCM'){
+  >            steps{
+  >                    git branch: 'main', url: 'https://github.com/iamYole/ansible-config-mgt.git'
+  >                }
+  >        }
+  >
+  >        stage('Run Ansible playbook'){
+  >            steps{
+  >                ansiblePlaybook become: true, colorized: true, credentialsId: 'Jenkins-Ansible-Server', disableHostKeyChecking: true, installation: 'Ansible', inventory: 'Inventory/dev.yml', playbook: 'Playbooks/site.yml', vaultTmpPath: ''
+  >            }
+  >        }
+  >
+  >        stage('Clean Workspace after build'){
+  >            steps{
+  >                cleanWs(cleanWhenAborted: true, cleanWhenFailure: true, cleanWhenNotBuilt: true, cleanWhenUnstable: true, deleteDirs: true)
+  >            }
+  >        }
+  >    }
+  > }
+  > ```
+
+- Finally, on AWS console, ensure all the Servers for the Development environment are powered on and ready to receive configuration instructions from Ansible.
+- Build the pipeline and observer the output for thing commands running behind the scene, and if there are any errors, the output would point us to the right direction.
+  ![alt text](Images/Img_25.png)
+- Also observer to outputs and ensure the changes were done successfully.
+  ![alt text](Images/Img_26.png)
