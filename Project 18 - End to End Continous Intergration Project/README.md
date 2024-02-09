@@ -532,3 +532,78 @@ Our goal here is to deploy the application onto servers directly from Artifactor
 4. Install the following Jenkins Plugins
    - Plot: This would be used to display tests reports, and code coverage information.
    - Artifactory: This would be used to easily upload code artifacts into an Artifactory server
+     ![alt text](Images/Img_32.png)
+5. Configure the Artifactory plugin in Jenkins. Remember to open ports `8081` and `8082` as they are both required for Jfrog Artifactory. From the Jenkins Dashoard > Manage Jenkins > System, and then scroll down to the Jfrog section.
+   ![alt text](Images/Img_33.png)
+
+### Phase 2 – Integrate Artifactory repository with Jenkins
+
+1. Create a dummy Jenkinsfile inside the php-todo repository cloned into jenkins-ansible server.
+2. On the database server, create database `homestead`and user `homesteaduser`. Let's do this using the Jenkins file we created in the php-todo.
+3. Update the roles/mysql/defaults/main.yml with the command below
+   > ```yml
+   > # Databases.
+   > mysql_databases:
+   >    - name: homestead
+   >        collation: utf8_general_ci
+   >        encoding: utf8
+   >        replicate: 1
+   >
+   > # Users.
+   > mysql_users:
+   >    - name: homestead
+   >         host: <private-ip-of-jenkins-server>
+   >         password: password.1
+   >         priv: '*.*:ALL,GRANT'
+   > ```
+4. Run the playbook from Jenkins and select the Dev enviroment when prompted.
+   ![alt text](Images/Img_34.png)
+5. Install MySQL Client on the Jenkins Server and the log in remotely to the database to confirm the configuration.  
+   ![alt text](Images/Img_35.png)
+6. Update the `.env.sample` file in the php-todo directory. This file is hidden so the view the file in the directory run `ls -la`. To edit the file, run `vi .env.sample`.
+   ![alt text](Images/Img_36.png)
+7. Edit the below variables in the `.env` file. Note that the last two variables would be added as they weren't in the defaul file.
+   > ```ini
+   > DB_HOST=<private ip address of the db>
+   > DB_DATABASE=homestead
+   > DB_USERNAME=homestead
+   > DB_PASSWORD=PassWord.1
+   > DB_CONNECTION=mysql
+   > DB_PORT=3306
+   > ```
+8. Update the Jenkins File with the code below:
+   > ```groovy
+   > pipeline {
+   >    agent any
+   >
+   >  stages {
+   >
+   >     stage("Initial cleanup") {
+   >          steps {
+   >            dir("${WORKSPACE}") {
+   >              deleteDir()
+   >            }
+   >          }
+   >        }
+   >
+   >    stage('Checkout SCM') {
+   >      steps {
+   >            // Provide your git url below
+   >            git branch: 'main', url: 'https://github.com/iamYole/php-todo.git'
+   >      }
+   >    }
+   >
+   >    stage('Prepare Dependencies') {
+   >      steps {
+   >             sh 'mv .env.sample .env'
+   >             sh 'composer install'
+   >             sh 'php artisan migrate'
+   >             sh 'php artisan db:seed'
+   >             sh 'php artisan key:generate'
+   >      }
+   >    }
+   >  }
+   > }
+   > ```
+9. Run the pipeline and all the stages should execute successfully.
+   ![alt text](Images/Img_37.png)
