@@ -384,6 +384,22 @@ In this file, i defined the roles i want installed for our development evnironme
 
 This would be the entry point of the playbook, here, we are dynamically importing the playbook for devwebservers.
 
+We also need to create an ansible configuration file in the local directory of the playbook. This config file would be local to this project alone, and it would be used for things such as setting the role path, python interpreter etc. In the Deploy directory created earlier, create a new file called `ansible.cfg`. Copy and the paste the code below to the file and then save it.
+
+> ```ini
+> [defaults]
+> timeout = 160
+> callbacks_enabled = profile_tasks
+> log_path=~/ansible.log
+> host_key_checking = False
+> gathering = smart
+> ansible_python_interpreter=/usr/bin/python3
+> allow_world_readable_tmpfiles=true
+>
+> [ssh_connection]
+> ssh_args = -o ControlMaster=auto -o ControlPersist=30m -o ControlPath=/tmp/ansible-ssh-%h-%p-%r -o ServerAliveInterval=60 -o ServerAliveCountMax=60 -o ForwardAgent=yes
+> ```
+
 Now, lets write our jenkins script to run the playbook
 
 - From Jenkins dashboard, click on new item, and then pipeline. Give the pipeline a name and click create.
@@ -429,8 +445,58 @@ Now, lets write our jenkins script to run the playbook
   > }
   > ```
 
+  The enviroment block defines the location of the `ansible.cfg` file. The play book has four(4) stages:
+
+  - **Cleaning up and initializing the environment:**: The purpose of this stage to to ensure we are running the latest code. The stage is tasked to delete files in the current directory.
+  - **Checkout SCM:**: In this stage, after all the files have been deleted, the lastest and updated copy of the repository would be cloned to the project's workspace.
+  - **Run Ansible playbook:**: This is the stage that runs the ansible playbook. It was generated using `Generate pipeline sytax` tool in Jenkins
+  - **Clean Workspace after build**: This final stage is tasked to delete all files created by the project.
+
+  In a production enviroment, the stages and task for each stage would be defined by the project requirement.
+
 - Finally, on AWS console, ensure all the Servers for the Development environment are powered on and ready to receive configuration instructions from Ansible.
 - Build the pipeline and observer the output for thing commands running behind the scene, and if there are any errors, the output would point us to the right direction.
   ![alt text](Images/Img_25.png)
 - Also observer to outputs and ensure the changes were done successfully.
   ![alt text](Images/Img_26.png)
+
+  ### Provisioning the Servers for the Pentest Environment
+
+  #### Parameterizing Jenkinsfile For Ansible Deployment
+
+  We've successfully setup the Servers for our Development environment. However, we still need to provision and configure the servers for other enviroments like PenTest, Production etc.
+
+  With the current configuration, we would need to manually edit the Jenkins file with the new environments details. As you guessed, there is an easir way to do this. Or more convinent way to archeive this.
+
+  To make this possible, we will dynamically load the Inventory file of the enviroment we want provisioned, in this case, Pentest.
+
+  - Power on the EC2 Instances for the Pentest environment.
+  - In the Jenkins script, just after the enviromnet block, and before the sateges block, add the following lines of code.
+    > ```groovy
+    > parameters {
+    >  string(name: 'Inventory', defaultValue: 'dev',  description: 'This is the inventory file for the environment to deploy configuration')
+    > }
+    > ```
+    >
+    > This code introduced a parameter to the Jenkins script which requries us to manually inout the name of the inventory file(dev, prod, stage, etc) we want to provision. It also set the default enivron the dev, and we can change this at run time.
+  - In the Jenkins script, scroll down to the `Run Ansible playbook` stage, locate this line of code
+
+    > inventory: 'Inventory/dev.yml'
+
+    and change it to
+
+    > inventory: 'Inventory/${inventory}.yml'
+
+  - I also added a file `static-assignment/pentest_servers.yml` to be called from the `site.yml` playbook when the pentest environment is called.
+  - Save the changes and the run the pipeline to oberserve the changes and notice only the pentest_servers would be provisioned.
+    ![alt text](Images/Img_27.png)
+  - Change the default value from dev to pentest and the run.
+    ![alt text](Images/Img_28.png)
+
+  - As seen above, the script ran successfully. Let's inspect the output of the this pipeline to ensure the environment being provisioned is indeed, the Pentest Environment.
+    ![alt text](Images/Img_29.png)
+    Notices how the servers for the dev enviromnet was skipped and only the pentest servers were provisioned.
+    ![alt text](Images/Img_30.png).
+    And there you have it, we have configured Jenkins to provision our environments by executing playbooks directly on our ansible server.
+
+### Part 4 - CI/CD PIPELINE FOR OUR TODO APPLICATION
