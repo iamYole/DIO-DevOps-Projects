@@ -500,3 +500,35 @@ Now, lets write our jenkins script to run the playbook
     And there you have it, we have configured Jenkins to provision our environments by executing playbooks directly on our ansible server.
 
 ### Part 4 - CI/CD PIPELINE FOR OUR TODO APPLICATION
+
+We've already deployed the tooling website as a part of deployment through Ansible. Here, we will working with a different PHP webapplication called TODO, and in this project, we will also introduce unit testing and code analysis and a repository manager to the CI/CD pipeline.
+
+Our goal here is to deploy the application onto servers directly from Artifactory rather than from git. If you have not updated Ansible with an Artifactory role, simply use this guide to create an Ansible role for Artifactory (ignore the Nginx part). Configure Artifactory on Ubuntu 22 https://www.youtube.com/watch?v=6M0r7Llf6zA
+
+#### Phase 1 - Prepare Jenkins
+
+1. Fork the repository below into your GitHub account https://github.com/darey-devops/php-todo.git. Also clone it into your jenkins server (home directory).
+
+2. On your Jenkins server, install PHP, its dependencies and Composer tool (Feel free to do this manually at first, then update your Ansible accordingly later)
+   > ```bash
+   > sudo apt update
+   > sudo apt install -y software-properties-common
+   > sudo add-apt-repository -y ppa:ondrej/php
+   > sudo apt update
+   > sudo apt install -y php7.4 php7.4-common php7.4-mbstring php7.4-opcache php7.4-intl php7.4-xml php7.4-gd php7.4-curl php7.4-mysql php7.4-fpm php7.4-json
+   > sudo systemctl start php7.4-fpm
+   > sudo systemctl enable php7.4-fpm
+   > ```
+3. Install and verify the installation of composer
+
+   > ```
+   > curl -sS https://getcomposer.org/installer | php
+   > sudo mv composer.phar /usr/bin/composer
+   > composer --version
+   > ```
+
+   ![alt text](Images/Img_31.png)
+
+4. Install the following Jenkins Plugins
+   - Plot: This would be used to display tests reports, and code coverage information.
+   - Artifactory: This would be used to easily upload code artifacts into an Artifactory server
