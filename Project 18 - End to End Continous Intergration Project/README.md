@@ -538,72 +538,313 @@ Our goal here is to deploy the application onto servers directly from Artifactor
 
 ### Phase 2 – Integrate Artifactory repository with Jenkins
 
-1. Create a dummy Jenkinsfile inside the php-todo repository cloned into jenkins-ansible server.
-2. On the database server, create database `homestead`and user `homesteaduser`. Let's do this using the Jenkins file we created in the php-todo.
-3. Update the roles/mysql/defaults/main.yml with the command below
-   > ```yml
-   > # Databases.
-   > mysql_databases:
-   >    - name: homestead
-   >        collation: utf8_general_ci
-   >        encoding: utf8
-   >        replicate: 1
-   >
-   > # Users.
-   > mysql_users:
-   >    - name: homestead
-   >         host: <private-ip-of-jenkins-server>
-   >         password: password.1
-   >         priv: '*.*:ALL,GRANT'
-   > ```
-4. Run the playbook from Jenkins and select the Dev enviroment when prompted.
-   ![alt text](Images/Img_34.png)
-5. Install MySQL Client on the Jenkins Server and the log in remotely to the database to confirm the configuration.  
-   ![alt text](Images/Img_35.png)
-6. Update the `.env.sample` file in the php-todo directory. This file is hidden so the view the file in the directory run `ls -la`. To edit the file, run `vi .env.sample`.
-   ![alt text](Images/Img_36.png)
-7. Edit the below variables in the `.env` file. Note that the last two variables would be added as they weren't in the defaul file.
-   > ```ini
-   > DB_HOST=<private ip address of the db>
-   > DB_DATABASE=homestead
-   > DB_USERNAME=homestead
-   > DB_PASSWORD=PassWord.1
-   > DB_CONNECTION=mysql
-   > DB_PORT=3306
-   > ```
-8. Update the Jenkins File with the code below:
+1.  Create a dummy Jenkinsfile inside the php-todo repository cloned into jenkins-ansible server.
+2.  On the database server, create database `homestead`and user `homesteaduser`. Let's do this using the Jenkins file we created in the php-todo.
+3.  Update the roles/mysql/defaults/main.yml with the command below
+    > ```yml
+    > # Databases.
+    > mysql_databases:
+    >    - name: homestead
+    >        collation: utf8_general_ci
+    >        encoding: utf8
+    >        replicate: 1
+    >
+    > # Users.
+    > mysql_users:
+    >    - name: homestead
+    >         host: <private-ip-of-jenkins-server>
+    >         password: password.1
+    >         priv: '*.*:ALL,GRANT'
+    > ```
+4.  Run the playbook from Jenkins and select the Dev enviroment when prompted.
+    ![alt text](Images/Img_34.png)
+5.  Install MySQL Client on the Jenkins Server and the log in remotely to the database to confirm the configuration.  
+    ![alt text](Images/Img_35.png)
+6.  Update the `.env.sample` file in the php-todo directory. This file is hidden so the view the file in the directory run `ls -la`. To edit the file, run `vi .env.sample`.
+    ![alt text](Images/Img_36.png)
+7.  Edit the below variables in the `.env` file. Note that the last two variables would be added as they weren't in the defaul file.
+    > ```ini
+    > DB_HOST=<private ip address of the db>
+    > DB_DATABASE=homestead
+    > DB_USERNAME=homestead
+    > DB_PASSWORD=PassWord.1
+    > DB_CONNECTION=mysql
+    > DB_PORT=3306
+    > ```
+8.  Update the Jenkins File with the code below:
+    > ```groovy
+    > pipeline {
+    >    agent any
+    >
+    >  stages {
+    >
+    >     stage("Initial cleanup") {
+    >          steps {
+    >            dir("${WORKSPACE}") {
+    >              deleteDir()
+    >            }
+    >          }
+    >        }
+    >
+    >    stage('Checkout SCM') {
+    >      steps {
+    >            // Provide your git url below
+    >            git branch: 'main', url: 'https://github.com/iamYole/php-todo.git'
+    >      }
+    >    }
+    >
+    >    stage('Prepare Dependencies') {
+    >      steps {
+    >             sh 'mv .env.sample .env'
+    >             sh 'composer install'
+    >             sh 'php artisan migrate'
+    >             sh 'php artisan db:seed'
+    >             sh 'php artisan key:generate'
+    >      }
+    >    }
+    >  }
+    > }
+    > ```
+9.  Run the pipeline and all the stages should execute successfully.
+    ![alt text](Images/Img_37.png)
+10. Let's update the Jenkins Script again with the code below. This should be added after the `Prepare Dependencies` stage:
+    > ```groovy
+    >    stage('Execute Unit Tests') {
+    >      steps {
+    >             sh './vendor/bin/phpunit'
+    >      }
+    > ```
+11. Before running, we need to set `xdebug.mode` to coverage in the php.ini file.
+
+        - In the Jenkins Server linux console, run the following codes:
+
+          > sudo apt-get install php-xdebug
+
+          This will install xdebug, the tool that allows for code analysis for php files.
+
+        - Locate the `php.ini` file (this can be found in `/etc/php/x.x/cli`) and make the change below:
+          > debug_mode = coverage
+        - Restart the Apache server, and the run the pipeline
+
+    ![alt text](Images/Img_38.png)
+    At the moment, this application is not supported by > PhP 8.1 and above. Recommended version is PHP 7.4
+
+### Phase 3 – Code Quality Analysis
+
+This stage is of great importance to developers because even if the code works and the application is runnung, if the code doesn't meet the required quality or compliance requirement, the pipeline will fail and there would be no deployment.
+
+For PHP the most commonly tool used for code quality analysis is phploc. Read the article here for more https://matthiasnoback.nl/2019/09/using-phploc-for-quick-code-quality-estimation-part-1/.
+
+The data produced by phploc can be ploted onto graphs in Jenkins. Add the code analysis step in Jenkinsfile. The output of the data will be saved in build/logs/phploc.csv file.
+
+1.  Let's add a new stage `Code Analysis` to the Jenkins file with the code below:
+    > ```groovy
+    > stage('Code Analysis') {
+    >  steps {
+    >        sh 'phploc app/ --log-csv build/logs/phploc.csv'
+    >
+    >  }
+    > }
+    > ```
+2.  Plot the data using plot Jenkins plugin. This plugin provides generic plotting (or graphing) capabilities in Jenkins. It will plot one or more single values variations across builds in one or more plots. Plots for a particular job (or project) are configured in the job configuration screen, where each field has additional help information. Each plot can have one or more lines (called data series). After each build completes the plots’ data series latest values are pulled from the CSV file generated by phploc.
+    > ```groovy
+    > stage('Plot Code Coverage Report') {
+    >      steps {
+    >
+    >            plot csvFileName: 'plot-396c4a6b-b573-41e5-85d8-73613b2ffffb.csv', csvSeries: [[displayTableFlag: false, exclusionValues: 'Lines of Code (LOC),Comment Lines of Code (CLOC),Non-Comment Lines of Code (NCLOC),Logical Lines of Code (LLOC)                          ', file: 'build/logs/phploc.csv', inclusionFlag: 'INCLUDE_BY_STRING', url: '']], group: 'phploc', numBuilds: '100', style: 'line', title: 'A - Lines of code', yaxis: 'Lines of Code'
+    >            plot csvFileName: 'plot-396c4a6b-b573-41e5-85d8-73613b2ffffb.csv', csvSeries: [[displayTableFlag: false, exclusionValues: 'Directories,Files,Namespaces', file: 'build/logs/phploc.csv', inclusionFlag: 'INCLUDE_BY_STRING', url: '']], group: 'phploc', numBuilds: '100', style: 'line', title: 'B - Structures Containers', yaxis: 'Count'
+    >            plot csvFileName: 'plot-396c4a6b-b573-41e5-85d8-73613b2ffffb.csv', csvSeries: [[displayTableFlag: false, exclusionValues: 'Average Class Length (LLOC),Average Method Length (LLOC),Average Function Length (LLOC)', file: 'build/logs/phploc.csv', inclusionFlag: 'INCLUDE_BY_STRING', url: '']], group: 'phploc', numBuilds: '100', style: 'line', title: 'C - Average Length', yaxis: 'Average Lines of Code'
+    >            plot csvFileName: 'plot-396c4a6b-b573-41e5-85d8-73613b2ffffb.csv', csvSeries: [[displayTableFlag: false, exclusionValues: 'Cyclomatic Complexity / Lines of Code,Cyclomatic Complexity / Number of Methods ', file: 'build/logs/phploc.csv', inclusionFlag: 'INCLUDE_BY_STRING', url: '']], group: 'phploc', numBuilds: '100', style: 'line', title: 'D - Relative Cyclomatic Complexity', yaxis: 'Cyclomatic Complexity by Structure'
+    >            plot csvFileName: 'plot-396c4a6b-b573-41e5-85d8-73613b2ffffb.csv', csvSeries: [[displayTableFlag: false, exclusionValues: 'Classes,Abstract Classes,Concrete Classes', file: 'build/logs/phploc.csv', inclusionFlag: 'INCLUDE_BY_STRING', url: '']], group: 'phploc', numBuilds: '100', style: 'line', title: 'E - Types of Classes', yaxis: 'Count'
+    >            plot csvFileName: 'plot-396c4a6b-b573-41e5-85d8-73613b2ffffb.csv', csvSeries: [[displayTableFlag: false, exclusionValues: 'Methods,Non-Static Methods,Static Methods,Public Methods,Non-Public Methods', file: 'build/logs/phploc.csv', inclusionFlag: 'INCLUDE_BY_STRING', url: '']], group: 'phploc', numBuilds: '100', style: 'line', title: 'F - Types of Methods', yaxis: 'Count'
+    >            plot csvFileName: 'plot-396c4a6b-b573-41e5-85d8-73613b2ffffb.csv', csvSeries: [[displayTableFlag: false, exclusionValues: 'Constants,Global Constants,Class Constants', file: 'build/logs/phploc.csv', inclusionFlag: 'INCLUDE_BY_STRING', url: '']], group: 'phploc', numBuilds: '100', style: 'line', title: 'G - Types of Constants', yaxis: 'Count'
+    >            plot csvFileName: 'plot-396c4a6b-b573-41e5-85d8-73613b2ffffb.csv', csvSeries: [[displayTableFlag: false, exclusionValues: 'Test Classes,Test Methods', file: 'build/logs/phploc.csv', inclusionFlag: 'INCLUDE_BY_STRING', url: '']], group: 'phploc', numBuilds: '100', style: 'line', title: 'I - Testing', yaxis: 'Count'
+    >            plot csvFileName: 'plot-396c4a6b-b573-41e5-85d8-73613b2ffffb.csv', csvSeries: [[displayTableFlag: false, exclusionValues: 'Logical Lines of Code (LLOC),Classes Length (LLOC),Functions Length (LLOC),LLOC outside functions or classes ', file: 'build/logs/phploc.csv', inclusionFlag: 'INCLUDE_BY_STRING', url: '']], group: 'phploc', numBuilds: '100', style: 'line', title: 'AB - Code Structure by Logical Lines of Code', yaxis: 'Logical Lines of Code'
+    >            plot csvFileName: 'plot-396c4a6b-b573-41e5-85d8-73613b2ffffb.csv', csvSeries: [[displayTableFlag: false, exclusionValues: 'Functions,Named Functions,Anonymous Functions', file: 'build/logs/phploc.csv', inclusionFlag: 'INCLUDE_BY_STRING', url: '']], group: 'phploc', numBuilds: '100', style: 'line', title: 'H - Types of Functions', yaxis: 'Count'
+    >            plot csvFileName: 'plot-396c4a6b-b573-41e5-85d8-73613b2ffffb.csv', csvSeries: [[displayTableFlag: false, exclusionValues: 'Interfaces,Traits,Classes,Methods,Functions,Constants', file: 'build/logs/phploc.csv', inclusionFlag: 'INCLUDE_BY_STRING', url: '']], group: 'phploc', numBuilds: '100', style: 'line', title: 'BB - Structure Objects', yaxis: 'Count'
+    >
+    >      }
+    >    }
+    > ```
+3.  From the Jenkins Server linux console, install PhpLoc with the commands below:
+
+    > ```bash
+    > sudo apt install phploc
+    > wget -O phpunit https://phar.phpunit.de/phpunit-7.phar
+    > chmod +x phpunit
+    > ```
+
+4.  Save the Jenkins File and then run the pipeline. This should run successfully.
+    ![alt text](Images/Img_39.png)
+5.  Click on the `Code Analysis` stage to see the result of the code analysis.
+    ![alt text](Images/Img_40.png)
+6.  To view the result of the `Plot Code Coverage Report` stage, exit the Blue Ocean view, click on the Pipeline project, and on the right pane, you should see a `Plot` menu.
+    ![alt text](Images/Img_41.png)
+
+         The analytics may not mean much to you as it is meant to be read by developers. So, you need not worry much about it – this is just to give you an idea of the real-world implementation.
+
+### Phase 4 – Bundle the PhP-TODO application files to the Artifactory repository.
+
+In this section, upon successful completion of the code analysis, the application files would be packaged using zip, and then uploaded to the Articatory Server.
+
+1. First of all, we need to ensure zip is installed on the Jenkins Server.
+   > sudo apt install zip unzip -y
+2. Add a stage Package the application files:
    > ```groovy
-   > pipeline {
-   >    agent any
-   >
-   >  stages {
-   >
-   >     stage("Initial cleanup") {
-   >          steps {
-   >            dir("${WORKSPACE}") {
-   >              deleteDir()
-   >            }
-   >          }
-   >        }
-   >
-   >    stage('Checkout SCM') {
-   >      steps {
-   >            // Provide your git url below
-   >            git branch: 'main', url: 'https://github.com/iamYole/php-todo.git'
-   >      }
+   > stage ('Package Artifact') {
+   >    steps {
+   >            sh 'zip -qr php-todo.zip ${WORKSPACE}/*'
+   >     }
    >    }
-   >
-   >    stage('Prepare Dependencies') {
-   >      steps {
-   >             sh 'mv .env.sample .env'
-   >             sh 'composer install'
-   >             sh 'php artisan migrate'
-   >             sh 'php artisan db:seed'
-   >             sh 'php artisan key:generate'
-   >      }
-   >    }
-   >  }
-   > }
    > ```
-9. Run the pipeline and all the stages should execute successfully.
-   ![alt text](Images/Img_37.png)
+3. And another stage to upload the packed files to Artifactory
+   > ```groovy
+   > stage ('Upload Artifact to Artifactory') {
+   >          steps {
+   >            script {
+   >                 def server = Artifactory.server 'jfrog-artifactory'
+   >                 def uploadSpec = """{
+   >                    "files": [
+   >                      {
+   >                       "pattern": "php-todo.zip",
+   >                       "target": "<name-of-artifact-repository>/php-todo",
+   >                       "props": "type=zip;status=ready"
+   >
+   >                       }
+   >                    ]
+   >                 }"""
+   >
+   >                 server.upload spec: uploadSpec
+   >               }
+   >            }
+   >
+   >        }
+   > ```
+4. Run the Pipeline and you should see all steps execute successfully.
+   ![alt text](Images/Img_42.png)
+5. Log into the Jfrog Artifactory Server and confirm the packaged files/artifacts has been uploaded.
+   ![alt text](Images/Img_43.png)
+
+To recap, the pipeline starts by preparing the working directory, deleting all exitig file, and then downloads the latest version of the source codes from github to the directory. Using composer, builds the source code, performs code analysis and then uploads the artifacts to Jfrog Artifactory. However, why stop here, then next step should be to deploy the application to either dev enironment or production. In order to do this neatly, we will need to create two different jobs on jenkins, one to do the Continous Integration bit, while we have another to do the Continous Delivery bit. The Continous Integration job would automatically call the Continous Delivery job once it's done. That way, we will only have to initite one job.
+
+Before we begin, let's go back to the `ansible` project we've been working on and create a playbook to deploy the application. We've already written different playbooks to provision and configure the servers for different environment.
+
+1. Let's start by creating a new play `static-assignments/deployment.yml` with the code below.
+
+   > ```yml
+   > ---
+   > - name: Deploying the PHP Applicaion to Dev Enviroment
+   >  become: true
+   >  hosts: todo
+   >
+   >  tasks:
+   >    - name: Update apt cache
+   >      ansible.builtin.apt:
+   >        update_cache: yes
+   >
+   >    - name: Install prerequisites
+   >      ansible.builtin.apt:
+   >        name:
+   >          - dirmngr
+   >          - gnupg
+   >          - software-properties-common
+   >        state: present
+   >
+   >    - name: Add PHP repository
+   >      ansible.builtin.apt_repository:
+   >        repo: ppa:ondrej/php
+   >        state: present
+   >
+   >    - name: install Apache on the webserver
+   >      ansible.builtin.apt:
+   >        name: apache2
+   >        state: present
+   >
+   >    - name: ensure httpd is started and enabled
+   >      ansible.builtin.service:
+   >        name: apache2
+   >        state: started
+   >        enabled: yes
+   >
+   >    - name: Install PHP and required extensions
+   >      ansible.builtin.apt:
+   >        name:
+   >          - php
+   >          - php-mysql
+   >          - php-gd
+   >          - php-curl
+   >          - unzip
+   >          - php-common
+   >          - php-mbstring
+   >          - php-opcache
+   >          - php-intl
+   >          - php-xml
+   >          - php-fpm
+   >          - php-json
+   >        state: present
+   >
+   >    - name: Ensure PHP-FPM is started and enabled
+   >      ansible.builtin.service:
+   >        name: php-fpm
+   >        state: started
+   >        enabled: yes
+   >
+   >    - name: Download the artifact
+   >      ansible.builtin.get_url:
+   >        url: http://18.133.204.179:8082/artifactory/PBL/php-todo
+   >        dest: /home/ubuntu/
+   >        url_username: admin
+   >        url_password: cmVmdGtuOjAxOjE3MzkxNzM0ODQ6OXlhdks0aE1NZU0yb2hqZEFmWGhmV0ZWcmNm
+   >
+   >    - name: unzip the artifacts
+   >      ansible.builtin.unarchive:
+   >        src: /home/ubuntu/php-todo
+   >        dest: /home/ubuntu/
+   >        remote_src: yes
+   >
+   >    - name: deploy the code
+   >      ansible.builtin.copy:
+   >        src: /home/ubuntu/var/lib/jenkins/workspace/php-todo_main/
+   >        dest: /var/www/html/
+   >        remote_src: yes
+   >
+   >    - name: Remove Apache default page
+   >      ansible.builtin.file:
+   >        path: /etc/apache2/sites-enabled/000-default.conf
+   >        state: absent
+   >
+   >    - name: Restart Apache
+   >      ansible.builtin.service:
+   >        name: apache2
+   >        state: restarted
+   > ```
+
+   To generate the token used to download the artifact, log into the Artifactory, and at the top right corner, click on Set Me Up, and then enter the password to generate the token.
+
+   ![alt text](Images/Img_44.png)
+   ![alt text](Images/Img_45.png)
+
+2. Update the `site.yml` file to call this new play with the code below.
+   > ```yml
+   > ---
+   > - hosts: todo
+   > - name: Deploy the PhP TODO Web Application
+   >   import_playbook: ../static-assignments/deployment.yml
+   > ```
+3. Great, our playbook has been configure. Let's create a Jenkins job to run this playbook. However, a new pipeline would be responsible for calling this job.
+4. Go to Jenkins and create a new job called `proj_deployment`. Point the job to the Jenkins script of the ansible project repository.
+   ![alt text](Images/Img_46.png)
+5. Now, create another job called `php_todo_cicd`. Point this job the the Jenkins Script of the php-todo git repository.
+6. Update the the php_todo Jenkins script with the script created earlier to upload artifacts, and then add a new stage to call and run the `proj_deployment`.
+   > ```yml
+   >  stage ('Deploy to Dev Environment') {
+   >      steps {
+   >        build job: 'proj_deployment', parameters: [[$class: 'StringParameterValue', name: 'env', value: 'dev.yml']], propagate: false, wait: true
+   >      }
+   >    }
+   > ```
+7. Save and commit all changes to github, and then build the `php_todo_cicd` pipeline.
+   ![alt text](Images/Img_47.png)
+8. Click on `proj_deployment` to see that the deployment pipeline executed sucessfully
+   ![alt text](Images/Img_48.png)
+   ![alt text](Images/Img_49.png)
