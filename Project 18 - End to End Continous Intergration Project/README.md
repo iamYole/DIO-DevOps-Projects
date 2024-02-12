@@ -693,7 +693,7 @@ In this section, upon successful completion of the code analysis, the applicatio
    > ```groovy
    > stage ('Package Artifact') {
    >    steps {
-   >            sh 'zip -qr php-todo.zip ${WORKSPACE}/*'
+   >            sh 'zip -q php-todo.zip *'
    >     }
    >    }
    > ```
@@ -707,7 +707,7 @@ In this section, upon successful completion of the code analysis, the applicatio
    >                    "files": [
    >                      {
    >                       "pattern": "php-todo.zip",
-   >                       "target": "<name-of-artifact-repository>/php-todo",
+   >                       "target": "PBL/",
    >                       "props": "type=zip;status=ready"
    >
    >                       }
@@ -769,23 +769,22 @@ Before we begin, let's go back to the `ansible` project we've been working on an
    >    - name: Install PHP and required extensions
    >      ansible.builtin.apt:
    >        name:
-   >          - php
+   >          - php7.4
    >          - php-mysql
    >          - php-gd
    >          - php-curl
    >          - unzip
    >          - php-common
    >          - php-mbstring
-   >          - php-opcache
    >          - php-intl
    >          - php-xml
-   >          - php-fpm
+   >          - php7.4-fpm
    >          - php-json
    >        state: present
    >
    >    - name: Ensure PHP-FPM is started and enabled
    >      ansible.builtin.service:
-   >        name: php-fpm
+   >        name: php7.4-fpm
    >        state: started
    >        enabled: yes
    >
@@ -794,6 +793,7 @@ Before we begin, let's go back to the `ansible` project we've been working on an
    >        url: http://18.133.204.179:8082/artifactory/PBL/php-todo
    >        dest: /home/ubuntu/
    >        url_username: admin
+   >         #Provide the password to the Jfrog Articatory below
    >        url_password: cmVmdGtuOjAxOjE3MzkxNzM0ODQ6OXlhdks0aE1NZU0yb2hqZEFmWGhmV0ZWcmNm
    >
    >    - name: unzip the artifacts
@@ -808,21 +808,18 @@ Before we begin, let's go back to the `ansible` project we've been working on an
    >        dest: /var/www/html/
    >        remote_src: yes
    >
-   >    - name: Remove Apache default page
+   >    - name: Remove Apache and Nginx default page
    >      ansible.builtin.file:
-   >        path: /etc/apache2/sites-enabled/000-default.conf
+   >        path: /var/www/html/{{ item }}
    >        state: absent
+   >      with_fileglob:
+   >         - /var/www/html/*
    >
    >    - name: Restart Apache
    >      ansible.builtin.service:
    >        name: apache2
    >        state: restarted
    > ```
-
-   To generate the token used to download the artifact, log into the Artifactory, and at the top right corner, click on Set Me Up, and then enter the password to generate the token.
-
-   ![alt text](Images/Img_44.png)
-   ![alt text](Images/Img_45.png)
 
 2. Update the `site.yml` file to call this new play with the code below.
    > ```yml
@@ -848,3 +845,5 @@ Before we begin, let's go back to the `ansible` project we've been working on an
 8. Click on `proj_deployment` to see that the deployment pipeline executed sucessfully
    ![alt text](Images/Img_48.png)
    ![alt text](Images/Img_49.png)
+9. ssh into the todo host, and navigate to `/var/www/html` to confirm the files were uploaded as expected.
+   ![alt text](Images/Img_50.png)
