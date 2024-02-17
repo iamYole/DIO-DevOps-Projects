@@ -847,3 +847,210 @@ Before we begin, let's go back to the `ansible` project we've been working on an
    ![alt text](Images/Img_49.png)
 9. ssh into the todo host, and navigate to `/var/www/html` to confirm the files were uploaded as expected.
    ![alt text](Images/Img_50.png)
+
+And there you have it. We now have a functional pipeline the takes the source code from GitHub, builds the code, test for code quality, deploy the artifact to a repository, initiates another job that pulls the uploaded artifact from the repository to the devlopment web server, and the prepare the files for deployment.
+
+This is all goode, but we need to introduce a new server in the mix that will test the code for quality more comprehensively. Let's introduce SonarQube to the mix and see how vital it is to the software deployment lifecycle.
+
+### Phase 4 – Introducing SonarQube to the Pipeline.
+
+As mentioned earlier, a very brief introduction of what SonarQube is and how it can be installed and configure can be found here - [Installing and Configuring SonarQube on Ubuntu 20](https://github.com/iamYole/Installing-and-Configuring-SonarQube/blob/main/README).
+
+#### Installing SonarQube with Ansible
+
+- Provision an EC2 Instance with type T2.Medium
+- Log into the Jenkins Server console and navigate to the roles directory in the `ansible project`.
+  ![alt text](Images/Img_59.png)
+- install the SonarQube role using the command below
+  > `sudo ansible-galaxy role install lean_delivery.sonarqube`
+- Remain the downloaded role directory to soner.
+- Update the CI inventory file with the ip details of the sonar server
+- create a new file in the `static-assignment` directory called sonar server, and then copy and paste the code below:
+  > ```yml
+  > ---
+  > - hosts: sonarqube
+  >   become: yes
+  >   roles:
+  >     - sonar
+  > ```
+- Update the `Playbook/site.yml` file with the code below:
+  > ```yml
+  > ---
+  > - hosts: sonarqube
+  > - name: Provision the SonarQube Server
+  >   import_playbook: ../static-assignments/sonarserver.yml
+  > ```
+- Navigate to the Deploy/ansible.cfg file and add the following code
+  > ```bash
+  > roles_path = /home/ubuntu/ansible-config-mgt/roles
+  > ```
+- In the Jenkins Server console, run the code below to instruct Ansible to use this file as it's configuration file.
+  > `export ANSIBLE_CONFIG=/home/ubuntu/ansible-config-mgt/deploy/ansible.cfg`
+- Since we are just configuing the SonarServer, we can run the playbook locally from the console.
+  > ``
+
+#### Integrating SonarQube to Jenkins
+
+The first thing we need to as you might have guessed already is to install the SonarQube plugin for Jenkins.
+
+- From the Jenkins dashboard > Manage Jenkins > Plugins > Available Plugins, and the search for `SonarQube Scanner` and then install it.
+  ![alt text](Images/Img_50.png)
+- Once this has been installed, navigate to the Jenkins Dashboard > Manage Jenkins, System, and then scroll down to SonarQube Servers section. Click on `Add SonarQube`, and then provide the necessary information.
+  ![alt text](Images/Img_52.png)
+- Open another tab in your browser and log into the SonarQube Server, and in the top righ conner, click on account
+  ![alt text](Images/Img_53.png)
+- Click on Security, and provide a name for the token then click generate.
+  ![alt text](Images/Img_55.png)
+- Copy the token and switch back to the Jenkins Tab. Click on Add Credentials. If the button is unresponsive, just click save and navitage to the sonarqube plugin setup again. This time, the Add Credentials button should work.
+- In the `Kind` field, select secret text, paste the token from the SonarQube Server, provide a name and ID and click add
+  ![alt text](Images/Img_54.png)
+- In the field above the add button, ensure the sonartoken credential is selected, and then save.
+
+**While we are still configuring Jenkins to work with SonarQube, let's also configure WebHooks from SonarQube.**
+
+- In the SonarQube Server, click on Administration > Configuration > Webhooks
+  ![alt text](Images/Img_56.png)
+- Click on create, provide a name and the sever location of your jenkins server followed by sonarqube-webhook.
+  ![alt text](Images/Img_57.png)
+- Next, we install the Sonar Scanner plugin. Go to Jenkins Dashboard > Manage Jenkins> Tools > Scroll down to SonarScanner Installation.
+- In the Sonar Scanner Installation, give it a name and the select a version, then save.
+  ![alt text](Images/Img_58.png)
+
+Now, it's time to introduce a stage for Sonar Analysis in the CICD pipeline.
+
+- Update the JenkinsFile with the code below, add a stage called `Sonar Analysis` just after the `Plot Code Coverage Report` stage.
+  > ```groovy
+  > stage ('Sonar Analysis') {
+  >         environment{
+  >            scannerHome = tool 'sonar5.0'
+  >         }
+  >
+  >         steps{
+  >          script{
+  >            withSonarQubeEnv(credentialsId: 'SonarToken'){
+  >              sh '''${scannerHome}/bin/sonar-scanner \
+  >               -Dsonar.projectKey=todo \
+  >               -Dsonar.projectName=Php-TODO \
+  >               -Dsonar.sources=/var/lib/jenkins/workspace/php_todo_cicd/ \
+  >               -Dsonar.php.exclusions=**/vendor/** \
+  >               -Dsonar.php.coverage.reportPaths=build/logs/clover.xml \
+  >               -Dsonar.php.tests.reportPath=build/logs/junit.xml'''
+  >            }
+  >          }
+  >         }
+  >     }
+  > ```
+  >
+  > Note, the `scannerHome` variable is the name of the sonnarScanner tool created in the previous step, while `SonarToken` is the name of the secret key used in connecting to the SonarQube Server. The other lines of code are just propeties defined telling the Scanner what to do, such as the location to the source code as well as location of files to scan and ones to exclude. The result of this scan would be uploaded to the SonarQube server.
+- Save and the run the script.
+  ![alt text](Images/img_59.png)
+  ![alt text](Images/Img_60.png)
+  The image above shows the output from the `Sonar Analysis` stage. It shows the report has been successfully uploaded to the SonarQube Server.
+- Log into the SonarQube Server to view the result of the the code scan,
+  ![alt text](Images/Img_61.png)
+- Click on the project name to view more details on the report.
+  ![alt text](Images/Img_62.png)
+
+  From the report above, we can see the quality of the code is quite poor and in most organisations, and all organisations that care about providing quality applications, this is not acceptable. Even though the application works and does the task it was set out to do, the code would still be rejected as it doen't meet the minimum requirement for a quality software.
+
+#### Introducing Quality Gate
+
+From the above, you will notice that despite the fact that the code was poor, the pipeline didn't fail, but went ahead in deploying the application. In SonarQube, a quality gate is a set of predefined, customizable criteria or thresholds that a project's code must meet in order to be considered of sufficient quality. Quality Gates also enfornce these standards and as such, fail the pipeline if the code didn't meet the requirement.
+
+Currently, our code has 18 bugs, 2 Security Hotspots, 1hr 32min of code debts, 20 code smells and so on. This code may be fine for the development enviroment, since it's still Work-in-Progress. However, it shouldn't be acceptable for the production enviroment.
+
+In the top menu of the SonarQube Server, click on quality gate to see the default minimum criteria set by SonarQube. This can can edited or a new set of rules created for different projects
+![alt text](Images/Img_63.png)
+Based on the above, the pipeline will always fail when the quality gate feature is enabled. Let's try it
+
+- Update the JenkinsFile, introduce a new stage called `Quality Gate`, just after the `Sonar Analysis` stage.
+
+  > ```groovy
+  > stage("Quality Gate") {
+  >            steps {
+  >                timeout(time: 1, unit: 'MINUTES') {
+  >                    // Parameter indicates whether to set pipeline to UNSTABLE if Quality Gate fails
+  >                    // true = set pipeline to UNSTABLE, false = don't
+  >                    waitForQualityGate abortPipeline: true
+  >                }
+  >            }
+  >        }
+  > ```
+
+- Save and run the pipeline again.
+  ![alt text](Images/Img_64.png)
+  From the image above, we can see the pipeline aborted at the quality gate stage as expected. While working in the development enviromnet, we can set that value of waitForQualityGate abortPipeline to be `false`.
+
+And there you have it, we have a full and functional CICD pipeline.
+
+**[Link](https://github.com/iamYole/php-todo/blob/main/JenkinsFile) to the complete JenkinsFile.**
+
+### Additional Tasks.
+
+- Adding Jenkins Slaves to execute jobs
+- Configure Webhooks between GitHub and Jenkins
+
+#### Adding Jenkins Slaves to execute jobs
+
+All the tasks we've carried out has been executed by the Jenkins Master. Jenkins also has the ability to delegate jobs to be run on different servers(agents or slaves). This is particularly useful for several reasons such as building a deploying applications to different architeures. For instance, deploying a windows based application while our Jenkins Server is Linux based. It is also very handy when we need to build muliple jobs simoultanously.
+
+- Provision a new EC2 Instance and add a new user.
+  ![alt text](Images/Img_65.png)
+- create a new directory
+  ![alt text](Images/img_66.png)
+- give ownership of the directory to the user created
+- enable password based login by editing the `/etc/ssh/sshd_config` file. In the file, search for the `Password Authentication` option and change the value to `yes`.
+- Restart the `ssh` service using the command `systemctl restart ssh`.
+- Log into Jenkins, from the Dashboard > Manage Jenkins > Nodes
+- Give a new and select Permenent Agent, and the click create
+- Enter 2 in the number of executors. This can be any number depending on how powerful the server is
+- provide the directory we created earlier in the Remote root directory field
+- In the launch method, select launch via ssh and then provide the ip address in the host name.
+- Click add for crediential, select username name and password, then provide the devops username and password created
+- For Host Key Verification Strategy, select non verifying host strategy
+- save abd go back to the Nodes Dashboard to confirm the node/slave is now online.
+  ![alt text](Images/Img_67.png)
+  There would be an x if it wasn't online.
+  Ensure port 22 is enabled from the slave machine and allows connection from the Jenkins Master.
+- Repeat the setps above to configure another slave/node.
+
+We've successfully added a node. To test this, let's create a new job with the script below:
+
+> ```groovy
+> pipeline {
+>    agent {label 'Slave1'}
+>
+>    stages {
+>        stage('Git Clone') {
+>            steps {
+>            git branch: 'main', url: 'https://github.com/iamYole/php-todo.git'
+>      }
+>        }
+>    }
+> }
+> ```
+
+The above script explicitly tells Jenkins to run the Job on `Slave1`. If we have multiple nodes, we would just select any and Jenkins would randomly pick.
+![alt text](Images/Img_68.png)
+The output above confirms the job was executed from the Slave1 Node. You can also log into the Slave1 machine, navigate the the directory we created above and see the workspace folder added along with the cloned directory.
+![alt text](Images/Img_69.png)
+
+#### Configure Webhooks between GitHub and Jenkins
+
+- Log into GitHub
+- Navigate the the `php-todo` repository, and then click on the repository's setting
+  ![alt text](Images/Img_70.png)
+- From the right pane, click on webhooks and the add webhook.
+- Provide the url to the Jenkins Server and add /github-webhook at the end.
+- In the content type, select application/json and then save
+  ![alt text](Images/Img_71.png)
+- You should see a green tick if this was configured successfully.
+  ![alt text](Images/Img_72.png)
+- Go back to the Pipeline configuration, and in the Build trigegr section, select webhook
+  ![alt text](Images/Img_73.png)
+- Scroll down to piple, from the pipeline defination, select Pipeline Script from SCM and then provide the detaails for the `php-todo` repository.
+  ![alt text](Images/Img_74.png)
+- Save
+- Add a comment to the JenkinsFile and then commit the changes. This will automatically trigger a build to Jenkins.
+  ![alt text](Images/Img_75.png)
+  Observer the output above, `Started by GitHub push by iamYole`
