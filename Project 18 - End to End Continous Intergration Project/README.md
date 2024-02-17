@@ -1038,19 +1038,19 @@ The output above confirms the job was executed from the Slave1 Node. You can als
 #### Configure Webhooks between GitHub and Jenkins
 
 - Log into GitHub
-- Navigate the the `php-todo` repository, and then click on the repository's setting
+- Navigate the the `php-todo` repository, and then click on the repository's setting  
   ![alt text](Images/Img_70.png)
 - From the right pane, click on webhooks and the add webhook.
 - Provide the url to the Jenkins Server and add /github-webhook at the end.
-- In the content type, select application/json and then save
+- In the content type, select application/json and then save  
   ![alt text](Images/Img_71.png)
-- You should see a green tick if this was configured successfully.
+- You should see a green tick if this was configured successfully.  
   ![alt text](Images/Img_72.png)
-- Go back to the Pipeline configuration, and in the Build trigegr section, select webhook
+- Go back to the Pipeline configuration, and in the Build trigegr section, select webhook  
   ![alt text](Images/Img_73.png)
-- Scroll down to piple, from the pipeline defination, select Pipeline Script from SCM and then provide the detaails for the `php-todo` repository.
+- Scroll down to piple, from the pipeline defination, select Pipeline Script from SCM and then provide the detaails for the `php-todo` repository.  
   ![alt text](Images/Img_74.png)
 - Save
-- Add a comment to the JenkinsFile and then commit the changes. This will automatically trigger a build to Jenkins.
+- Add a comment to the JenkinsFile and then commit the changes. This will automatically trigger a build to Jenkins.  
   ![alt text](Images/Img_75.png)
   Observer the output above, `Started by GitHub push by iamYole`
