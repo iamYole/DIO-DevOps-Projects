@@ -994,9 +994,9 @@ And there you have it, we have a full and functional CICD pipeline.
 
 All the tasks we've carried out has been executed by the Jenkins Master. Jenkins also has the ability to delegate jobs to be run on different servers(agents or slaves). This is particularly useful for several reasons such as building a deploying applications to different architeures. For instance, deploying a windows based application while our Jenkins Server is Linux based. It is also very handy when we need to build muliple jobs simoultanously.
 
-- Provision a new EC2 Instance and add a new user.
+- Provision a new EC2 Instance and add a new user.  
   ![alt text](Images/Img_65.png)
-- create a new directory
+- create a new directory  
   ![alt text](Images/img_66.png)
 - give ownership of the directory to the user created
 - enable password based login by editing the `/etc/ssh/sshd_config` file. In the file, search for the `Password Authentication` option and change the value to `yes`.
@@ -1008,7 +1008,7 @@ All the tasks we've carried out has been executed by the Jenkins Master. Jenkins
 - In the launch method, select launch via ssh and then provide the ip address in the host name.
 - Click add for crediential, select username name and password, then provide the devops username and password created
 - For Host Key Verification Strategy, select non verifying host strategy
-- save abd go back to the Nodes Dashboard to confirm the node/slave is now online.
+- save abd go back to the Nodes Dashboard to confirm the node/slave is now online.  
   ![alt text](Images/Img_67.png)
   There would be an x if it wasn't online.
   Ensure port 22 is enabled from the slave machine and allows connection from the Jenkins Master.
