@@ -57,6 +57,7 @@ The concepts above will become clearer when we start creating and managing docke
   > `sudo docker run hello-world`
 
   ![alt text](Images/Img_01.png)
+
   From the image above, we can see that our installation was successful.
 
 The commands above used in installing docker engine was gotten from the [official docker documentation page](https://docs.docker.com/engine/install/). Visit the page for future updates or installation on a different OS.

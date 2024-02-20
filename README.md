@@ -36,5 +36,5 @@
     Setting up a CI/CD (Continuous Integration/Continuous Deployment) pipeline for Terraform using Jenkins involves a series of steps. In this project, we will set up a Jenkins from a docker image and then and also install Terraform CLI to implement the CICD Pipeline.
 18. Project 18 - [End to End Continous Integration (CI) project using JENKINS | ANSIBLE | ARTIFACTORY | SONARQUBE | PHP](https://github.com/iamYole/DIO-Projects/tree/main/Project%2018%20-%20End%20to%20End%20Continous%20Intergration%20Project#readme)
     In this project, we will be taking a deeper look at **Continous Intergration** in practice. Here, will use several CI softwares like Jenkins, Ansible, SonarQube, etc to drive this implementation.
-19. Project 19 - [Containerization with Docker]()
+19. Project 19 - [Containerization with Docker](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2019%20-%20Containerization/README.md)
     THis project would be a basic introduction to containers(Docker). We will also see Docker in action by deploy our tooling application using docker.
