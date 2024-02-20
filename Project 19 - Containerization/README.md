@@ -61,3 +61,83 @@ The concepts above will become clearer when we start creating and managing docke
   From the image above, we can see that our installation was successful.
 
 The commands above used in installing docker engine was gotten from the [official docker documentation page](https://docs.docker.com/engine/install/). Visit the page for future updates or installation on a different OS.
+
+### Step 2 - Pulling a MySQL Docker Image
+
+In this step, we will be building the database layer of the tooling application. In previous projects, we had to provision and EC2 Instance and then Install MySQL and its dependencies. Here, with just a sigle command, or maybe two, we can have a fully funcation MySQL server running. Let's begin
+
+- From the linux command line, run the code below:
+
+  > `sudo docker pull mysql:latest`
+
+  ![alt text](Images/Img_02.png)
+
+  If you require a specific version of MySQL Server, you can visit the [Docker Hub], the official repository of docker images, search for `mysql`, and in the tag link, scroll down or search for the specific version you are interested in.
+  ![alt text](Images/Img_03.png)
+
+- To view all locally available image, run the command below:
+
+  > `sudo docker images`
+
+  ![alt text](Images/Img_04.png)
+
+- TO run the image, type the command below:
+  > `sudo docker run --name tooling_db -e MYSQL_ROOT_PASSWORD=PassW0rd.1 -d mysql`
+  - `--name` Gives the container we are creating a name, In this case we named it tooling_db
+  - `-e` is used to provide a password to connect to the mysql server
+  - `-d` is required to run the container in the background. Issuing this command without this flag will make it immpossible to run any other command on the system without first quiting the containiner.
+- Type the command below to confirm the container is running
+
+  > `sudo docker ps`
+
+  ![alt text](Images/Img_05.png)
+
+- To connect to the MySQL container, run the command below
+
+  > `sudo docker exec -it tooling_db mysql -uroot -p`
+
+  ![alt text](Images/Img_06.png)
+
+#### Docker Networks
+
+In Docker, a network is a communication channel that enables containers to communicate with each other, with other Docker services, or with external networks such as the internet. Docker provides various types of networks, each serving different purposes and offering different capabilities. These networks facilitate the networking requirements of containerized applications, allowing them to function effectively in distributed environments. It is not mandatory to create a network because docker creates one automatically for us. However, there are cases where we will require a network with specifications that the default network created by docker can't handle. For instance, there is a requirement to control the cidr range of a network.
+
+Now, let's create a docker network and create a new mysql docker container in the network.
+
+- To create the network, run
+  > `docker network create --subnet=172.18.0.0/24 tooling_app_network`
+- View the list of available networks, run
+
+  > `sudo docker network ls`
+
+  ![alt text](Images/Img_07.png)
+
+- Now, let's create a new mysql docker containing on our network. Before that, let's export the password as a variable to the linux enviroment.
+  > `export MYSQL_PASSWORD="PassW0rd.1"`
+- Then run
+
+  > `docker run --network tooling_app_network -h mysqlserverhost --name=tooling-db-server -e MYSQL_ROOT_PASSWORD=$MYSQL_PASSWORD  -d mysql/mysql-server:latest`
+
+  - -h: Specify a hostname for the container
+  - --network: connects the container to the network
+
+  ![alt text](Images/Img_08.png)
+
+  From the image above, notice docker could not find the image locally, so it went to the official repository to search for it That's because we are using a different image from the one used initially.
+
+- Now, let's write a script to create a user. Using your favorite text editor, create a file with the code below. Save the file as `create_user.sql`
+
+  > ```sql
+  > CREATE USER 'webaccess'@'%' IDENTIFIED BY 'PassW0rd.1';
+  > GRANT ALL PRIVILEGES ON *.* TO 'webaccess'@'%';
+  > GRANT CREATE ON *.* TO 'webaccess'@'%';
+  > ```
+
+- then run
+  > `sudo docker exec -i tooling-db-server mysql -uroot -p$MYSQL_PASSWORD < create_user.sql`
+- Log in with the newly created user for confirmation
+
+  > `sudo docker exec -it tooling-db-server mysql -uwebaccess -p$MYSQL_PASSWORD`
+  > Note that the same password exported to the linux enviroment as a variable was used to create the user.
+
+  ![alt text](Images/Img_09.png)
