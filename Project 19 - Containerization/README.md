@@ -138,6 +138,301 @@ Now, let's create a docker network and create a new mysql docker container in th
 - Log in with the newly created user for confirmation
 
   > `sudo docker exec -it tooling-db-server mysql -uwebaccess -p$MYSQL_PASSWORD`
-  > Note that the same password exported to the linux enviroment as a variable was used to create the user.
+
+  Note that the same password exported to the linux enviroment as a variable was used to create the user.
 
   ![alt text](Images/Img_09.png)
+
+#### Connecting to MySQL Server from a Client
+
+Let's create a MySQL Client container that connects to the MySQL Server. Run the code below
+
+> `docker run --network tooling_app_network --name mysql-client -it --rm mysql mysql -h mysqlserverhost -u webaccess -p`
+
+![alt text](Images/Img_10.png)
+
+From the Image above, we connected directly directly to the server using a client image. Notice also that we didn't have to create a new container for this. However, we can if we need to.
+
+### Step 3 - Preparing the database schema for the tooling app
+
+- First, clone the [Tooling app](https://github.com/dareyio/tooling) Repo to the local machine.
+- Export the location of the `tooling_db_schema` as a variable
+  > `export DB_SCHEMA="/home/ubuntu/tooling/html/tooling_db_schema.sql"`
+- Run the script by executing the command below
+  > `docker exec -i tooling-db-server mysql -uroot -p$MYSQL_PASSWORD < $DB_SCHEMA`
+- Run the command below to confirm the schema has been created
+
+  > `sudo docker exec -it tooling-db-server mysql -uwebaccess -p`
+
+  ![alt text](Images/Img_11.png)
+
+- Still in the MySQL console, run the following commands to explore the database
+
+  > ```sql
+  > show tables;
+  > ```
+
+  > ```sql
+  > select * from tools;
+  > ```
+
+  ![alt text](Images/Img_12.png)
+
+### Step 4 - Containerizing the Tooling App
+
+We've been using prebuilt Docker Images up to this point. It's time we create our our image and customise it.
+
+The [Tooling app](https://github.com/dareyio/tooling) Repo already has a DockerFile with the set of instructions required to build the image. Let's explore the file below:
+
+> ```docker
+> FROM php:7-apache
+> LABEL Dare dare@darey.io
+>
+> ENV MYSQL_IP=$MYSQL_IP
+> ENV MYSQL_USER=$MYSQL_USER
+> ENV MYSQL_PASS=$MYSQL_PASS
+> ENV MYSQL_DBNAME=$MYSQL_DBNAME
+>
+> RUN docker-php-ext-install mysqli
+> RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+> RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+> COPY apache-config.conf /etc/apache2/sites-available/000-default.conf
+> COPY start-apache /usr/local/bin
+> RUN a2enmod rewrite
+>
+> # Copy application source
+> COPY html /var/www
+> RUN chown -R www-data:www-data /var/www
+>
+> CMD ["start-apache"]
+> ```
+
+- `FROM php:7-apache`: This line specifies the base image to use as the starting point for building the Docker image. In this case, it uses the official PHP 7 Apache image as the base image.
+- `LABEL` is used to specify the owner of the file
+- The `ENV` variables sets the enviroment varibles with values needed to configure the application
+- The `RUN` commands are used to execute bash commands such as installing required packages.
+- The `COPY` commands are used to copy files from the local machine to the container. Since we already cloned and modified the files, the same files would moved to the container.
+
+Update the `tooling/html/db_conn.php` file with the following details
+
+> ```php
+> $servername = "mysqlserverhost";
+> $username = "webaccess";
+> $password = "PassW0rd.1";
+> $dbname = "toolingdb";
+> ```
+
+Get the IP Address of the containing running the database by running the command below
+
+> `docker inspect <contaner id> | grep IPAddress`
+
+The container id can be obtained by running `docker ps`
+
+Update the `tooling/html/.env` with the Ip Address of the database container.
+
+To use a .env file for storing credentials in PHP, you typically use a library like "vlucas/phpdotenv" which allows you to load environment variables from a .env file into $\_ENV or $\_SERVER. However, in this project, we won't be making much changes to the source code.
+
+In order to make the application work, edit the `/html/db_conn.php` file. Comment out the code below
+
+> `$conn = new mysqli($servername, $username, $password, $dbname);`
+
+and replace it with
+
+> `$conn = new mysqli("<IP ADDRESS of the DB CONTAINER>","<DB USERNAME>","DB PASSWORD","toolingdb")`
+
+Execute the command `sudo docker build -t tooling:0.0.1 .` to build the Tooling app image. Notice the period `.` at the end of the command. That tells docker to look for a file named `Dockerfile` within the current directory.
+
+To run the image in a container, execute the command
+
+> `sudo docker run --network tooling_app_network -p 8085:80 -it -d tooling:0.0.1`
+
+![alt text](Images/Img_13.png)
+
+From the image above, we can see we now have both containers running as well as their port numbers. Open a web broswer provide the public ip addess of the EC2 instance and the port `8085` to access the app
+
+![alt text](Images/Img_14.png)
+
+And there you have it. The Tooling application has been successfully installed using docker containers.
+
+## Deploying the Tooling App using Docker Compose and Jenkins
+
+In the previous section we deployed our first containerized application using Docker. In this section, we will be deploying the same application, but using `Docker Compse`, and then create a Jenkins pipeine to automate the process.
+
+- Let's start by installing `Docker Compose`. The easiest and recommended way to get Docker Compose is to install Docker Desktop. Docker Desktop includes Docker Compose along with Docker Engine and Docker CLI which are Compose prerequisites. If you already have Docker Engine and Docker CLI installed, you can install the Compose plugin from the command line.
+
+  > ```bash
+  > sudo apt-get update
+  > sudo apt-get install docker-compose-plugin
+  > ```
+
+- Verify that Docker Compose is installed correctly by checking the version.
+
+  > `docker compose version`
+
+- Next,let's stop the containers and delete the existing docker images.
+
+  > `sudo docker stop $(docker ps -aq)`
+
+  The command above first lists all the container IDs, then pass the list as an arguement to `docker stop` which stops all the containers.
+
+  > `sudo docker rmi -f $(docker images -a -q)`
+
+  ![alt text](Images/Img_15.png)
+
+- And finally, run `sudo docker system prune` to delete all unused resources taking up space.
+  ![alt text](Images/Img_16.png)
+
+#### The Docker Compose file
+
+Docker Compose is a tool for defining and running multi-container Docker applications. It allows you to use a YAML file to configure the services, networks, and volumes required for your application's containers and then spin up all of these containers with a single command.
+
+- To begin, let's change the folder structure alittle bit. In the `tooling` home directory, create a foler called `Docker-Files`, and within the folder, create two sub folders called `db` and `tooling`. Within each of the sub folders, create a file called `Dockerfile`. Copy the schema file from the `html/tooling_db_schema.sql` to `Docker-Files/db`. Also copy the `apache-config.conf` and `start-apache` to the `Docker-Files/tooling` directory. The directory structure should look like the image below.
+
+  ![alt text](Images/Img_17.png)
+
+- In the `db/Dockerfile`, paste the code below and save it
+  > ```docker
+  > FROM mysql/mysql-server:latest
+  > LABEL "Project"="Tooling App"
+  > LABEL "Author"="Gideon"
+  >
+  > ENV MYSQL_USER = "webaccess"
+  > ENV MYSQL_ROOT_PASS = "PassW0rd.1"
+  > ENV MYSQL_DATABASE = "toolingdb"
+  >
+  > ADD tooling_db_schema.sql docker-entrypoint-initdb.d/tooling_db_schema.sql
+  > ```
+- In the `tooling/Dockerfile`, paste the code below and save it
+
+  > ```docker
+  > FROM php:7-apache
+  > LABEL Dare dare@darey.io
+  >
+  > ENV MYSQL_IP=$MYSQL_IP
+  > ENV MYSQL_USER=$MYSQL_USER
+  > ENV MYSQL_PASS=$MYSQL_PASS
+  > ENV MYSQL_DBNAME=$MYSQL_DBNAME
+  >
+  > RUN docker-php-ext-install mysqli
+  > RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+  > RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  > COPY apache-config.conf /etc/apache2/sites-available/000-default.conf
+  > COPY start-apache /usr/local/bin
+  > RUN a2enmod rewrite
+  >
+  > # Copy application source
+  > COPY ~/tooling/html /var/www
+  > RUN chown -R www-data:www-data /var/www
+  >
+  > CMD ["start-apache"]
+  > ```
+
+- Now, in the `tooling` home directory, create a file called `docker-compose.yml`, copy and paste the code below:
+
+  > ```yml
+  > version: "1.0"
+  > services:
+  >   tooling_db:
+  >     build:
+  >       context: ./Docker-Files/db
+  >     ports:
+  >       - "3306:3306"
+  >     volumes:
+  >       - dbdata:/var/lib/mysql
+  >     environment:
+  >       - MYSQL_ROOT_PASSWORD=PassW0rd.1
+  >       - MYSQL_DATABASE="toolingdb"
+  >     networks:
+  >       tooling_app_network:
+  >         ipv4_address: 172.18.0.2
+  >
+  >   tooling_frontend:
+  >     build:
+  >       context: ./Docker-Files/tooling
+  >     ports:
+  >       - "8080:80"
+  >     volumes:
+  >       - frontenddata:/var/www/html
+  >     networks:
+  >       tooling_app_network:
+  >         ipv4_address: 172.18.0.3
+  >
+  > volumes:
+  >   dbdata: {}
+  >   frontenddata: {}
+  >
+  > networks:
+  >   tooling_app_network:
+  >     driver: bridge
+  >     ipam:
+  >       driver: default
+  >       config:
+  >         - subnet: 172.18.0.0/16
+  > ```
+
+- Before we build the images, let's modify the `$conn` variable in the `db_conn,php` file.
+
+  > `$conn = new mysqli("tooling_db","<DB USERNAME>","DB PASSWORD","toolingdb")`
+
+  Here, we using the service name "tooling_db" definded in the `docker-compose.yml` as the hostname. This will automatically be replaced with the IP Address of the container.
+
+- To build the images using the `docker-compose` file, run the command below
+
+  > `sudo docker compose build ` > ![alt text](Images/Img_18.png)
+
+- The command above will build the indivdual images and with their configurations. To confirm the images were built successfully, run the `sudo docker images` command.
+  ![alt text](Images/Img_19.png)
+
+  From the image above, we can see our tooling_db and tooling_frontedend containters have been built as defined in the services section of the docker compose file.
+
+- Now, let's run the application by executing the command below.
+
+  > `sudo docker compose up -d`
+
+  ![alt text](Images/Img_20.png)
+
+- Run the `docker ps` command to ensure the containers are indeed running
+  ![alt text](Images/Img_21.png)
+
+- Now, to access the tooling appllication, open a web broswer provide the public ip addess of the EC2 instance and the port `8080` to access the app
+  ![alt text](Images/Img_22.png)
+  ![alt text](Images/Img_23.png)
+
+### Pushing the Docker images to Docker Hub
+
+Docker Hub is a cloud-based repository service provided by Docker for sharing and distributing containerized applications and libraries. It serves as a central hub for container images built with Docker, allowing developers to store and share their Docker images publicly or privately.
+
+To create our own docker images, let's start by registering at hub.docker.com
+
+- After registering, go to Repositories, and create a repository. Select the name space and then tooling_db for the Repository name.
+  ![alt text](Images/Img_24.png)
+- Follow the same sets above and create another repository called tooling_frontend
+  ![alt text](Images/Img_25.png)
+- Next, we tag our images by running the code docker tag <image name>:tag <docker_hub_username>/reposotory_name:tag. For example
+
+  > `docker tag tooling-tooling_db iamyole/tooling_db:1.0`
+
+- After tagging both images, run `docker images` to verify the images have been tagged.
+  ![alt text](Images/Img_26.png)
+  we can see the tagged images from the screenshot above.
+- Next, run `docker login`, provide your docker hub email address and password
+  ![alt text](Images/Img_27.png)
+- After logging in successfully, we can now push our images to docker hub by running the code
+  > `sudo docker push iamyole/tooling_db:1.0` > ![alt text](Images/Img_28.png)
+- You can also log into docker hub to verify the image has been uploaded to your docker hub account accordingly.
+  ![alt text](Images/Img_29.png)
+
+### Creating a Jenkins Pipeline to Automate the entire process
+
+As you would have noticed, we've made so many changes to the original [Tooling app](https://github.com/dareyio/tooling) repository we cloned earlier to make the application work. Now, let's commit those changes and push them to a new repositroy called `Tooling-Jenkins-Pipeline`.
+
+- First, log into your GitHub account and create the Repository
+- Navigate to the cloned directory and execute the command "git remote add new-origin new_repo_url". For example:
+  > `git remote add new-origin git@github.com:iamYole/Tooling-Jenkins-Pipeline.git`
+- Stage all changes
+- commit all changes
+- Push to the new repository by running the command below
+  > `git push -u new-origin`
+- You can confirm from your GitHub account that the new repository has all the files including the docker files definded earlier.
+
+The next set would be to create a new Pipeline in Jenkins and link the new GitHub Repository. Now, from the pipeline, we would be executing some docker commands, so we can either install docker in the Jenkins Server or configure the Docker Server to be an Agent to Jenkins, and instruct the job to run from the agent. We learnt how to create Jenkins agents/slaves in [End to End Continous Integration (CI) project using JENKINS | ANSIBLE | ARTIFACTORY | SONARQUBE | PHP](https://github.com/iamYole/DIO-Projects/tree/main/Project%2018%20-%20End%20to%20End%20Continous%20Intergration%20Project#readme) project.
