@@ -523,6 +523,6 @@ Let's modify the Jenikins file. After the `Pushing the Images to Docker Hub` Sta
 >   }
 > ```
 
-The complete Jenkinsfile can be foung [here](https://github.com/iamYole/Tooling-Jenkins-Pipeline/blob/master/Jenkinsfile).
+The complete Jenkinsfile can be found [here](https://github.com/iamYole/Tooling-Jenkins-Pipeline/blob/master/Jenkinsfile).
 
 And there you have it, our Jenkins Pipleline has been built successfully.
