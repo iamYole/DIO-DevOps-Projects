@@ -436,3 +436,93 @@ As you would have noticed, we've made so many changes to the original [Tooling a
 - You can confirm from your GitHub account that the new repository has all the files including the docker files definded earlier.
 
 The next set would be to create a new Pipeline in Jenkins and link the new GitHub Repository. Now, from the pipeline, we would be executing some docker commands, so we can either install docker in the Jenkins Server or configure the Docker Server to be an Agent to Jenkins, and instruct the job to run from the agent. We learnt how to create Jenkins agents/slaves in [End to End Continous Integration (CI) project using JENKINS | ANSIBLE | ARTIFACTORY | SONARQUBE | PHP](https://github.com/iamYole/DIO-Projects/tree/main/Project%2018%20-%20End%20to%20End%20Continous%20Intergration%20Project#readme) project.
+
+- Login into the Jenkins Server and configure the Docker Server to be a node/slave Jenkins
+- Install the Docker plugin and configure it accordingly. Jenkins Dashboard > Manage Jenkins > Tools and then scroll down to the Docker section
+  ![alt text](Images/Img_30.png)
+- Create a new Jenkins Pipeline project called `Project_tooling` and link it to the `Tooling-Jenkins-Pipeline`GitHub Repository
+  ![alt text](Images/Img_31.png)
+- In the `Tooling-Jenkins-Pipeline`GitHub Repository, create a Jenkins file and paste the code below:
+
+  > ```groovy
+  > pipeline {
+  > agent {label 'Docker_Server'}
+  >
+  > stages {
+  >     stage('Inital Clean up'){
+  >         steps {
+  >          dir("${WORKSPACE}") {
+  >            deleteDir()
+  >          }
+  >        }
+  >     }
+  >
+  >     stage('Cloning the Tooling Repository') {
+  >         steps {
+  >              git branch: 'master', url: 'https://github.com/iamYole/Tooling-Jenkins-Pipeline.git'
+  >          }
+  >     }
+  >
+  >     stage('Building the Images'){
+  >          steps{
+  >              script{
+  >               sh 'sudo docker compose build '
+  >              }
+  >          }
+  >     }
+  >      stage('Tagging the Images'){
+  >          steps{
+  >              script{
+  >               sh 'sudo docker tag project_tooling-tooling_db iamyole/tooling_db:from_jenkins'
+  >               sh 'sudo docker tag project_tooling-tooling_frontend iamyole/tooling_frontend:from_jenkins'
+  >              }
+  >          }
+  >     }
+  >
+  >     stage('Pushing the Images to Docker Hub'){
+  >          steps{
+  >              script{
+  >                  withCredentials([string(credentialsId: 'dockerhubpw', variable: 'dockerhubpw')]) {
+  >                      sh 'sudo docker login -u gideonovuzorie@gmail.com -p ${dockerhubpw}'
+  >                  }
+  >                  sh 'sudo docker push iamyole/tooling_db:from_jenkins'
+  >                  sh 'sudo docker push iamyole/tooling_frontend:from_jenkins'
+  >                  sh 'sudo docker logout'
+  >              }
+  >          }
+  >     }
+  >
+  >  }
+  > }
+  > ```
+
+  - Build and run the script from Jenkins
+    ![alt text](Images/Img_32.png)
+
+The Jenkins Script ran perfectly. Now let's verify the task were also executed as expected.
+
+- Log into the Docker server to confirm the images were created
+  ![alt text](Images/Img_33.png)
+- Log into Docker Hub to confirm the images were pushed
+  ![alt text](Images/Img_34.png)
+  There you have it. Notice we now have two images. The one pushed earlier and the one tagged `from jenkins`.
+
+Depending on the project requirement, we could also add a new stage to launch the docker containers or add a post stage to stop all docker processes and delete the containers. Since we've already pushed the images to docker hub, let's introduce a
+`Post` stage to delete the docker containers from the Docker Server.
+
+Let's modify the Jenikins file. After the `Pushing the Images to Docker Hub` Stage, add a post with the code below:
+
+> ```groovy
+> post{
+>        always{
+>            script{
+>                sh 'sudo docker compose down -v'
+>                sh 'sudo docker rmi -f $(sudo docker images -a -q) '
+>            }
+>        }
+>   }
+> ```
+
+The complete Jenkinsfile can be foung [here](https://github.com/iamYole/Tooling-Jenkins-Pipeline/blob/master/Jenkinsfile).
+
+And there you have it, our Jenkins Pipleline has been built successfully.
