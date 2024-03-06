@@ -38,5 +38,5 @@
     In this project, we will be taking a deeper look at **Continous Intergration** in practice. Here, will use several CI softwares like Jenkins, Ansible, SonarQube, etc to drive this implementation.
 19. Project 19 - [Containerization with Docker](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2019%20-%20Containerization/README.md)
     THis project would be a basic introduction to containers(Docker). We will also see Docker in action by deploy our tooling application using docker.
-20. Project 20 - [Building a Scalable and Secure IT Infrastructure on AWS for a Company]()  
+20. Project 20 - [Building a Scalable and Secure IT Infrastructure on AWS for a Company](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2020%20-%20Building%20a%20Scalable%20and%20Secure%20IT%20Infrastructure%20on%20AWS/README.md)  
     In this project, we will be designing the IT infrastructure for a fictitious company using AWS from scratch. Topics that would be covered includes AWS Organization, AWS Accounts and IAM, Virtual Private Cloud (VPC) Configuration and Networking etc.
