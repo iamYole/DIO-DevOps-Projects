@@ -135,7 +135,7 @@ SCPs allow administrators to establish granular controls at the organizational l
   > }
   > ```
 
-- Let's create one more limiting Sandbox to only T2,Micro. The Policy definition below.
+- Let's create one more limiting Sandbox to only T2.Micro. The Policy definition below.
   > ```json
   > {
   >   "Version": "2012-10-17",
@@ -161,7 +161,7 @@ Now, let's add these polices to the accounts.
 
 - Go back to the user AWS accounts menu in the Organization, click on the `Sandbox` OU and the Policies.
   ![alt text](Images/Img_14.png)
-- Click on attach and then select the policy to restricting EC2 Instances to just T@.micro. The policy above would be restricted to only the sandbox account.
+- Click on attach and then select the policy to restricting EC2 Instances to just T2.micro. The policy above would be restricted to only the sandbox account.
 - Now, back to the AWS accounts menu, click the `root` OU. Add the policy to restrict root accounts from creating EC2 Instances, and leaving the organization. As this is being added to the `root` OU, the policy would also be cascaded down to the nested OU.
 
 We can log to the different accounts and test the organization policy is being enforced.
