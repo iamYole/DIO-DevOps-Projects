@@ -89,3 +89,147 @@ After the OUs and Accounts have been created, the next set would be to log into 
   ![alt text](Images/Img_11.png)
 
 #### Service Control Policies (SCP)
+
+SCPs allow administrators to establish granular controls at the organizational level to enforce security, compliance, and governance requirements across all accounts within an AWS organization. Examples of such requirements could be restricting member accounts of OUs from accidentally leaving the Organization, restricting root users from creating some resources, limiting the Sandbox OU to just T2.micro, just to mention a few. Now, let's create some and apply them to our OUs.
+
+- From the Organization homepage, click Policies and enable it if its not yet enabled.
+  ![alt text](Images/Img_12.png)
+- Click Create New Policy and name it `restrict-leaving-org`
+- Policies are written in json, and we can write it manually, or used the helper by the right of the policy definition box.
+- Using the helper, click on add statement, then would be to add a service, search for organization and select it, then finally, what action do we want, search for leave organization and then add it.
+- Click on Add Resources, and then select all resources
+- The json should have been populated with the following
+  > ```json
+  > {
+  >   "Version": "2012-10-17",
+  >   "Statement": [
+  >     {
+  >       "Sid": "Statement1",
+  >       "Effect": "Deny",
+  >       "Action": ["organizations:LeaveOrganization"],
+  >       "Resource": ["*"]
+  >     }
+  >   ]
+  > }
+  > ```
+- Click on Create Policy to create the Policy.
+
+- Let's repeat the steps above to create the policy restricting root accounts from creating some resources. You can copy and paste the policy definition below to save time.
+
+  > ```json
+  > {
+  >   "Version": "2012-10-17",
+  >   "Statement": [
+  >     {
+  >       "Sid": "Statement1",
+  >       "Effect": "Deny",
+  >       "Action": ["ec2:*"],
+  >       "Resource": ["*"],
+  >       "Condition": {
+  >         "ForAnyValue:StringLike": {
+  >           "aws:PrincipalArn": "arn:aws:iam::*:root"
+  >         }
+  >       }
+  >     }
+  >   ]
+  > }
+  > ```
+
+- Let's create one more limiting Sandbox to only T2,Micro. The Policy definition below.
+  > ```json
+  > {
+  >   "Version": "2012-10-17",
+  >   "Statement": [
+  >     {
+  >       "Sid": "Statement1",
+  >       "Effect": "Deny",
+  >       "Action": ["ec2:RunInstances"],
+  >       "Resource": ["arn:aws:ec2:*:*:instance/*"],
+  >       "Condition": {
+  >         "ForAnyValue:StringNotEquals": {
+  >           "ec2:InstanceType": "t2.micro"
+  >         }
+  >       }
+  >     }
+  >   ]
+  > }
+  > ```
+- At time point, we should have `Customer managed policy`
+  ![alt text](Images/Img_13.png)
+
+Now, let's add these polices to the accounts.
+
+- Go back to the user AWS accounts menu in the Organization, click on the `Sandbox` OU and the Policies.
+  ![alt text](Images/Img_14.png)
+- Click on attach and then select the policy to restricting EC2 Instances to just T@.micro. The policy above would be restricted to only the sandbox account.
+- Now, back to the AWS accounts menu, click the `root` OU. Add the policy to restrict root accounts from creating EC2 Instances, and leaving the organization. As this is being added to the `root` OU, the policy would also be cascaded down to the nested OU.
+
+We can log to the different accounts and test the organization policy is being enforced.
+
+#### Tag Policies
+
+In addition to SCPs defined above, we can also enforce the requirement that all resources must be tagged. We've been asked to create the following tags for all resources:
+
+- Project Name: "Proj-Ytech"
+- Environment: "Dev|Test|Stage|Prod"
+- Automated: "Yes|NO"
+
+Now let's create a policy enforcing this.
+
+- Back to the Policies menu, click on Tag Policies. Enable it if it's not already enabled.
+  ![alt text](Images/Img_15.png)
+- Click on Create Policy, and give it a name `ProjectRequiredTags`
+- Scroll down to the visual editor and create the following tags
+  - Project Name
+    - Select use capitalization
+    - For the specified values, type in the value "Proj-Ytech"
+    - For the resource type to enforce, scroll through the list and enable the resources we would be creating for the project.
+- Repeat the step above twice, one for "Environment" and another for "Automated"
+- At the end, your tag policy definition should be looking similar to the image below
+  ![alt text](Images/Img_16.png)
+- Add the policy to the `Dev` OU. The tag can be added the same way we added the other policies.
+
+### Part 6 - AWS Route53
+
+AWS Route 53 is a scalable and highly available Domain Name System (DNS) web service provided by Amazon Web Services (AWS). Route 53 offers a wide range of features and capabilities, including domain registration, DNS health checks, traffic routing policies, and DNS-based failover. It provides developers and administrators with the tools to configure and manage DNS records, implement advanced routing policies, and monitor the health and performance of their applications and infrastructure.
+
+Since we already have our domain name from GoDaddy.com, we would just be creating a hosted zone. The hosted zone in AWS is a container for DNS records that define how internet traffic are routed for a specific domain. It serves as the authoritative source for DNS information for that domain. Hosted Zones contain various types of DNS records, such as A (IPv4 address), AAAA (IPv6 address), CNAME (canonical name), MX (mail exchange), TXT (text), and others.
+
+Now, let's create our hosted Zone.
+
+- Log into AWS Management console using the credentials of the `devops_admin` account created earlier.
+- From the dashboard, search for Route 53, and from the main page, click on get started.
+- Select `Create Hosted Zone` from the options
+  ![alt text](Images/Img_17.png)
+- Provide your domain name and give it a description
+- Select Public hosted Zone and then create
+  ![alt text](Images/Img_18.png)
+- The hosted zone would be created with some Named Service(NS) records and a Start of Authority (SOA) record.
+  ![alt text](Images/Img_19.png)
+- Next, we need to map the NS Records from how hosted zone to the public domain.
+- Log into your domain provider's site and navigate to manage domain.
+- Within the manage domain window, create a new record, type should be NS, give it a name `techsolutions` and the copy and paste the NS records from the hosted zone in AWS.
+  ![alt text](Images/Img_20.png)
+- Save and then exit the manage domain settings.
+
+We will test this later. Next, let's create/validate our domain with a certificate. This will enable us to create secure applications using https or TLS.
+
+#### Creating a Certificate
+
+- From the AWS management console, search for Certificate Manager.
+- From the Certificate manager page, click on request certificate > request public certificate
+  ![alt text](Images/Img_21.png)
+- In the `Fully qualified domain name` field, provide your domain in the format `*.<yourdomain>`. Mine is `*.iamyole.uk`
+
+  ![alt text](Images/Img_22.png)
+
+- Leave the rest settings at default, create a tag and the request certificate.
+- Refresh the page, and you should see your certificate. The status would be pending verification
+  ![alt text](Images/Img_23.png)
+- Now, to validate this certificate, click on it to access the CNAME name and CNAME value
+  ![alt text](Images/Img_24.png)
+- login into your domain settings, mine is GoDaddy.com > create a new CNAME record with the CNAME name and CNAME value from the certificate.
+- For the CNAME name, remove the domain name at the end, and for the value, remove just the `fullstop` at the end. Just as it is in the image below. Then save
+  ![alt text](Images/Img_25.png)
+- Go back to the Certificate Manager in AWS and refresh to confirm of the certificate has been issued/validated. Note, this make take a while.
+  ![alt text](Images/Img_26.png)
