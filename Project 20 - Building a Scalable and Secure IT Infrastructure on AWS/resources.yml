@@ -1,0 +1,67 @@
+---
+VPC:
+  name: ytech-vpc
+  region: eu-west-2
+  availability_zones:
+    - eu-west-2a
+    - eu-west-2b
+  IPv4-VPC-CIDR-block: 10.0.0.0/16 
+
+Subnets:
+  - public:
+    - name: sub_pub_1
+      availability_zones: eu-west-2a
+      route_table: pub_RT
+      IPv4-subnet-CIDR-block: 10.0.1.0/24 
+      network_connection: 
+        internet_gateway: IGW 
+    - name: sub_pub_2
+      availability_zones: eu-west-2b
+      route_table: pub_RT 
+      IPv4-subnet-CIDR-block: 10.0.3.0/24 
+      network_connection: 
+        internet_gateway: IGW 
+  - private:
+    - name: sub_priv_1
+      availability_zones: eu-west-2a
+      route_table: priv_RT 
+      IPv4-subnet-CIDR-block: 10.0.2.0/24 
+      network_connection: 
+        nat_gateway: NAT-GW
+    - name: sub_priv_2
+      availability_zones: eu-west-2b
+      route_table: priv_RT 
+      IPv4-subnet-CIDR-block: 10.0.4.0/24 
+      network_connection: 
+        nat_gateway: NAT-GW
+
+Security_Groups:
+  - name: alb_SG 
+    description: Security group for the Application Load balancer 
+    vpc: ytech-vpc
+    allow_traffic: Internet 
+
+  - name: nginx_SG 
+    description: Security group for the Nginx servers 
+    vpc: ytech-vpc
+    allow_traffic: alb_SG 
+
+  - name: webservers_SG 
+    description: Security group for the web servers 
+    vpc: ytech-vpc
+    allow_traffic: nginx_SG 
+
+  - name: backend_SG 
+    description: Security group for the backend servers such as (RDS, MEMCAHE, etc)
+    vpc: ytech-vpc
+    allow_traffic: webservers_SG 
+
+  - name: efs_SG 
+    description: Security group for the EFS volume
+    vpc: ytech-vpc
+    allow_traffic: webservers_SG, nginx_SG 
+
+  - name: bastion_SG 
+    description: Security group for the Bastion Host
+    vpc: ytech-vpc
+    allow_traffic: company's network ONLY

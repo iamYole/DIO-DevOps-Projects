@@ -233,3 +233,104 @@ We will test this later. Next, let's create/validate our domain with a certifica
   ![alt text](Images/Img_25.png)
 - Go back to the Certificate Manager in AWS and refresh to confirm of the certificate has been issued/validated. Note, this make take a while.
   ![alt text](Images/Img_26.png)
+
+### Part 7 - Virtual Private Cloud (VPC) Configuration and Networking
+
+Virtual Private Cloud (VPC) Configuration and Networking in AWS is the foundation of building a secure and scalable cloud infrastructure. A VPC allows users to provision a logically isolated section of the AWS Cloud, where they can launch AWS resources such as EC2 instances, RDS databases, etc. VPCs enable users to define their own IP address range, subnets, route tables, and network gateways, providing complete control over network configuration and connectivity.
+
+We already have an approved plan of how the network is to be designed, the resources in the network and how they all map to each other. Now let's implement this.
+
+![alt text](Images/Img_01.png)
+
+Making reference to the network diagram above, let's extract some key requirements for the VPC and save it to a `YAML` document. This would help keep us organized and the document can be shared with other teams to ensure uniformity.
+
+![alt text](Images/Img_27.png)
+
+Link to the complete yaml file can be found [here](). Let's begin.
+
+For a more detailed step by step guide on how to create the VPC, refer to an earlier project - [Implementing Networking Concepts in AWS (VPC, Subnets, IG, NAT, Routing, etc](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2015%20-%20Networking%20in%20AWS/README.md)
+
+#### Creating the VPC
+
+Remember we are creating the entire infrastructure using the `devops_admin@ytech-solutions` account.
+
+- Log into the AWS Management Console and from services, search for VPC.
+- Click on create VPC, and from the VPC settings, select VPC only.
+- In the IPv4 CIDR field, type in `10.0.0.0/16`.
+- Create the required tags and the click create.
+  ![alt text](Images/Img_28.png)
+  We now how our vpc created.
+
+#### Creating the Subnets
+
+- Click on Subnets > Create Subnet from the top right corner of the page, and then create 4 subnets using details in the `resources.yml` file. Ensure the subnets are created in the ytech-vpc.
+  ![alt text](Images/Img_29.png)
+
+#### Creating the Elastic IP Address
+
+- From the left pane of the VPC console, select Elastic IPs, and the from the top right corner of the screen, click on Allocate Elastic
+- Select your region, give the Elastic IP a tag for easy identification, and the Allocate.
+- Note that we require a total of three (3) Elastic IP addresses for this project, but we will be creating just one at the moment due to how Amazon charge for this resource. Others would be created when we need them.
+  ![alt text](Images/Img_32.png)
+
+#### Creating the Internet Gateway
+
+- Click on Internet gateways under the VPC menu > Create Internet Gateway.
+- Type in `IGW` and the name and then create.
+- Once the Internet Gateway is created, add it to the VPC, by selecting Actions > Attach to VPC. Select the `ytech-vpc` and then attach.
+  ![alt text](Images/Img_30.png)
+
+#### Creating the NAT Gateway
+
+- From the left pane in the VPC console, select NAT Gateways, and then from the top right corner, click on the Create NAT gateway button.
+- In the Create NAT gateway page, let's give our NAT gateway a name and then select any of our Public Subnets. Also select the Elastic IP we created earlier and then save.
+  ![alt text](Images/img_33.png)
+  ![alt text](Images/Img_34.png)
+
+### Creating the Route Tables
+
+In order for our Internet Gateway to direct traffic from the internet in and out of our subnets, we need to create a route table to direct these traffic accordingly.
+
+- Click on Route tables > Create Route table
+- Type in `pub-RT` as the name, and then select the `ytech-vpc` and the create.
+- Repeat the steps above and name the second route table `priv-RT`.
+  ![alt text](Images/Img_31.png)
+- Select the `pub-RT`, abd then click on Edit Routes.
+  ![alt text](Images/Img_35.png)
+- Click on Add Route, then provide `0.0.0.0` as the destination, and then the Internet Gateway we created earlier as the Target
+  ![alt text](Images/Img_36.png)
+- Repeat the steps above to configure `priv-RT`. The destination should also be `0.0.0.0/0`, but the Target here should be the NAT Gateway we created.
+
+Finally, we need to associate the Public subnets to `pub-RT` and the Private subnets to `priv-RT`.
+
+- Still in the route table page, select select the `priv-RT` > Subnet Association, and then Edit Subnet associations.
+  ![alt text](Images/Img_37.png)
+- Select the two public subnets we want to restrict access to the internet, and then save.
+- Repeat the steps above for the `pub-RT` and then select the public subnets.
+
+At this point, we should have a functional VPC that routes traffic to the Internet or the local network depending on the subnet. We have a pictorial representation of our VPC by navigating to `Your VPC` > select the `ytech-vpc` > `Resource Map`.
+
+![alt text](Images/Img_38.png)
+
+#### Creating the Security Groups
+
+Now, let's create the different Security Groups for our resources within the VPC. Please refer once again to the `resources.yml` file containing the configuration requirements.
+
+From the Services Menu, search for Elastic Compute (EC2) and go to the dashboard.
+
+![alt text](Images/Img_39.png)
+
+The top section (Resources) shows a breakdown of all the resources (EC2 Instances, Elastic IPs, Volumes etc) that are created in a region. So far, we've created only one (1) Elastic IP, and the default VPC comes with two (2) Security Groups. Let's create ours now.
+
+- From the right pane, scroll down to Network & Security, then click on Security Groups.
+- Click on Create security group, give it a name `alb_SG` and description, select the `ytech-vpc`.
+- In the Inbound Rule section, click on add rule, then add all traffic from http and https to `0.0.0.0/0`.
+- Tag accordingly and then save.
+  ![alt text](Images/Img_40.png)
+- Repeat the steps above for the `nginx_SG`. However, this time, we are allowing traffic from only the `alb_SG` created earlier.
+- Use the information from the `resource.yml` to create the remaining security groups.
+- For the `backend_SG`, ensure only ssh access if allowed, and only traffic from the company's network is allowed connection.
+  ![alt text](Images/Img_42.png)
+
+Note that the inbound rules defined at this stage are not final. As we create resources within the security groups, more more ports would be opened to all traffic to the specific applications. For instance, NGINX may run on port `8080`, the database on `3306` etc. Now, we should have created all the security groups required at this stage.
+![alt text](Images/Img_43.png)
