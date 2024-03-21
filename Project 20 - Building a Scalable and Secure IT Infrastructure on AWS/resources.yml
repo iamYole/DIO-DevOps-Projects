@@ -65,3 +65,52 @@ Security_Groups:
     description: Security group for the Bastion Host
     vpc: ytech-vpc
     allow_traffic: company's network ONLY
+
+---
+Compute Services:
+  Project Name: Proj-ytech
+  region: eu-west-2
+  availability_zones:
+    - eu-west-2a
+    - eu-west-2b
+
+EC2 Instances:
+  - name: NGINX 
+    OS: Red Hat Enterprise Linux 9
+    AMI: ami-0fe630eb857a6ec83
+    type: T2.mirco
+    vpc: ytech-vpc
+    availability_zone: eu-west-2a | eu-west-2b
+    subnet: Any public subnet 
+    key: web_key
+    security_group: nginx-SG
+    installed_softwares:
+      - python 
+      - ntp 
+      - net-tools
+      - vim 
+      - wget 
+      - telnet 
+      - epel-release
+      - htop 
+      - nginx 
+
+  - name: WEBSERVER 
+    OS: CentOS 9 with Support by Supported Images 
+    AMI: ami-0d92a87ad2f33f38d
+    type: T2.mirco
+    vpc: ytech-vpc
+    availability_zone: eu-west-2a | eu-west-2b
+    subnet: Any public subnet 
+    key: web_key
+    security_group: webservers_SG 
+    installed_softwares:
+      - python 
+      - ntp 
+      - net-tools
+      - vim 
+      - wget 
+      - telnet 
+      - epel-release
+      - htop 
+      - nginx 

@@ -246,7 +246,7 @@ Making reference to the network diagram above, let's extract some key requiremen
 
 ![alt text](Images/Img_27.png)
 
-Link to the complete yaml file can be found [here](). Let's begin.
+Link to the complete yaml file can be found [here](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2020%20-%20Building%20a%20Scalable%20and%20Secure%20IT%20Infrastructure%20on%20AWS/resources.yml). Let's begin.
 
 For a more detailed step by step guide on how to create the VPC, refer to an earlier project - [Implementing Networking Concepts in AWS (VPC, Subnets, IG, NAT, Routing, etc](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2015%20-%20Networking%20in%20AWS/README.md)
 
@@ -334,3 +334,88 @@ The top section (Resources) shows a breakdown of all the resources (EC2 Instance
 
 Note that the inbound rules defined at this stage are not final. As we create resources within the security groups, more more ports would be opened to all traffic to the specific applications. For instance, NGINX may run on port `8080`, the database on `3306` etc. Now, we should have created all the security groups required at this stage.
 ![alt text](Images/Img_43.png)
+
+### Part 7 - Compute Services
+
+Compute services in Amazon Web Services (AWS) are tools that allow users to run and manage computing resources in the cloud. These services offer flexible and scalable options for running applications and workloads without the need for owning physical servers.
+
+One of the main compute services in AWS is Amazon Elastic Compute Cloud (EC2). It provides virtual servers, known as instances, which users can customize based on their needs for CPU, memory, storage, and networking. EC2 instances can be easily launched, managed, and scaled up or down as needed.
+
+For this Project, we will be configuring several EC2 Instances, for the servers, an AWS RDS for the database, Application load balances, Volumes for storage, etc.
+
+Let's begin by configuring the Compute Resources for the Nginx Server.
+
+#### Compute Resources for the Nginx
+
+1. Provisioning the Instance Using the information in the `resource.yml` file, provision the instance. The instance should be bootstrapped with the `userdata` script below:
+
+   > ```bash
+   > #!/bin/bash
+   > # Update package lists and install required packages
+   > yum update -y
+   >
+   > # Install required packages
+   > yum install -y python ntp net-tools vim wget telnet chrony nginx-all-modules.noarch
+   >
+   > # Start and enable the NTP service
+   > systemctl start chronyd
+   > systemctl enable chronyd
+   >
+   > # Start and enable the NGINX service
+   > systemctl start nginx
+   > systemctl enable nginx
+   > ```
+
+- After the Instance has been provisioned, SSH into it to confirm all the packages are installed and are running as expected.
+- Port 22 can be temporarily enabled on the security group to perform this checks pending when the Bastion Host has been provisioned.
+- Ensure the NGINX Server was provisioned in a public subnet with internet access.
+
+2. Creating an AMI out of the Instance  
+   Just as we used the Redhat Linux 9 AMI(Amazon Machine Image) above to provision the NGINX Server, we can as well create our own AMI or Images with pre-configured softwares. Since we need to create one NGINX Server in each public subnet, instead of creating the instance and then installing all the softwares from scratch, we will be using the NGINX current settings in creating the AML.
+
+   - Select the NGINX Instance and from actions, select Image and Template > Create Image
+
+   ![alt text](Images/Img_44.png)
+
+   - In the Create AMI page, give the AMI a name `nginx-ami`, give it a tag and then save.
+   - Navigate to the AMI section and confirm the `nginx-ami` has been created.
+     ![alt text](Images/img_45.png)
+
+3) Prepare a Lunch template for the Image  
+   Launch templates are a feature provided by Amazon Web Services (AWS) that allows users to define a set of parameters for launching EC2 instances. These parameters include instance type, AMI ID, security groups, key pair, and other configurations.
+   Again, the speed up the process of provisioning new Nginx Servers as at when needed, we will be creating a launch template the the `nginx-ami` image. The launch template will define the VPC, instance type, subnet, security group etc.
+
+- Click on Launch Templates from the right pane, and then create a Launch Template.
+- In the create launch template window, provide the following:
+  ![alt text](Images/Img_46.png)
+  - Template name
+  - AMI: select the `nginx-ami`
+  - Instance Type: T2.micro
+  - Key Pair: choose an existing key pair
+  - Subnet: Do not Include (this is because we will be launching the Nginx Severs in different subnets)
+  - Security Group: `nginx_SG`  
+     The remaining setting can be left at the default values
+    ![alt text](Images/Img_47.png)
+    Launch Template Created.
+
+4. Configure Target Groups
+   Target groups are logical groupings of instances that can receive traffic from a load balancer. Target groups are used in conjunction with Application Load Balancers (ALBs) and Network Load Balancers (NLBs) to route incoming requests to the appropriate targets based on routing rules and health checks.
+
+   Since we will be having multiple Nginx Servers, we will need a target group in where the load balancers we will be creating can route traffic to.
+
+   - In the right pane, under the load balancer section, click on Target Group > Create Target Group
+
+   ![alt text](Images/Img_48.png)
+
+   - The the create Target Group Window, make the following selections:
+     - Choose Targets: Instance
+     - Give the Target Group a name
+     - Protocol - Port: TLS 433
+     - Ip Type: Ip v4
+     - VPC - ytech
+
+- Click next and then select the nginx instances in the available section.
+- Click in include pending below to move them the the target section.
+  ![alt text](Images/Img_49.png)
+
+5. Configure Auto Scaling
