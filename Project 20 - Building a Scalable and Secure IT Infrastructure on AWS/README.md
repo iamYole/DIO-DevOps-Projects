@@ -525,3 +525,122 @@ The company has two separate applications(Tooling and WordPress), so we would be
 Elastic File System (EFS) is a scalable, fully managed file storage service provided by Amazon Web Services (AWS). It is designed to provide scalable and elastic file storage for use with AWS cloud services and on-premises resources.
 
 Since we will be having clusters of dynamic web applications where users would be saving and retrieving data, its important we provide consistent data to the users. We will create an EFS volume to host data from the web servers. One for the Tooling Site, and another for WordPress. Let's begin.
+
+- In the Services menu, search for EFS
+- Click Create Elastic File System and provide a name.
+- Select the `ytech` VPC and the click on customize
+  ![alt text](Images/Img_62.png)
+- In the Network Access Settings, select the two Availability Zones we have our servers running and the ensure the public subnets (the same subnets we have the nginx servers running) are selected.
+- Also ensure only the `efs_SG` which has NFS enabled is selected for the Security Group
+  ![alt text](Images/Img_63.png)
+- For the remaining settings, we can go with the defaults and then click create File System.
+- Repeat the steps above to create another EFS for the web_servers
+  ![alt text](Images/Img_64.png)
+
+Next, we need to create access points to mount the EFS volumes
+
+- Click on Access Points and then Create Access Point
+- Select the nginx-FS created earlier and give the Access Point a name
+- Repeat the steps above to create the Access Point for Web Servers
+
+Ideally, we ought to have created the EFS volumes before provisioning the servers. That way, when we create then AMIs from the Servers with the EFS volumes mounted, we won't have to repeat this step when launching a new server.
+
+### Setting up the Load Balancers
+
+In the previous section, we created the web servers as well as the nginx server. We also created a target and auto scaling group to scale up or down the resources to meet the traffic size. In order for the users to be redirected to different servers in order not to overload a particular server, we will need to take advantage of AWS Load Balancer. AWS has 3 different types of Load Balancers:
+
+- **Application Load Balancer (ALB)**: This can be used when you need a flexible feature set for your applications with HTTP and HTTPS traffic.
+- **Network Load Balancer (NLB)**: This can be used when you need ultra-high performance, TLS offloading at scale, centralized certificate deployment, support for UDP, and static IP addresses for your applications
+- **Gateway Load Balancer (GLB)**: This can be used when you need to deploy and manage a fleet of third-party virtual appliances that support GENEVE.
+
+For this project, we will be using the ALB to direct traffic from the users to the Nginx server, and the web servers. The Web servers are configured to not accept traffic directly from the internet, but from the load balancer alone.
+
+- From the right pane, Click Load Balancers > Create Load Balancer
+
+  ![alt text](Images/Img_65.png)
+
+- Select the Application Load Balancer and then click create
+- Give the load balancer a name `nginx-ALB`
+- Select internet facing for the schema
+  ![alt text](Images/Img_66.png)
+- Network Mapping: Choose the `ytech` VPC, and the select the two AZs and the public subnets were the servers are installed.
+  ![alt text](Images/Img_67.png)
+- Delete the default Security Group and then select the `alb-SG` created earlier
+  ![alt text](Images/Img_68.png)
+- Listeners and routing: select the HTTPS Protocol of port 443 and the select the Nginx Target group as the target
+  ![alt text](Images/Img_69.png)
+
+- Repeat the steps above the the Load Balancers for the web servers. However, this time, select internal for the schema, the the private subnets. The idea behind this is that the traffic coming from the internet would be routed by the load balancer to the web servers hosted on a private network.
+
+![alt text](Images/Img_70.png)
+
+Remember, users would not be connecting directly to the web servers, but through the load balancers, and as Instances can be created and deleted based on the Auto Scaling group, we cannot use an IP address to connect to the web servers. Thankfully, the ALB takes care of this challenge by providing e dns name the users can use to access the load balancer and then in turn the web servers.
+
+The dns name for the nginx load balancer is `nginx-ALB-1302030202.us-east-1.elb.amazonaws.com`, and it can be found in the details when the ALB is selected. We can make this more user-friendly by creating a name record in our domain and giving it a more user friendly name.
+
+### Setting up the Database
+
+We've set up the web servers and the files system to host the website files. We've also configured the ALB to automatically distribute traffic between the web servers. Now it's time to set up the database.
+
+Amazon Relational Database Service (RDS) is a managed relational database service provided by Amazon Web Services (AWS). It simplifies the setup, operation, and scaling of relational databases in the cloud, allowing you to focus on your application development rather than managing database infrastructure. RDS supports various popular relational database engines, including Amazon Aurora (a MySQL and PostgreSQL-compatible database built for the cloud), MySQL, PostgreSQL, MariaDB, Oracle Database, and Microsoft SQL Server. This gives you the flexibility to choose the database engine that best suits your application requirements.
+
+However, before we step up that database, we need to create an encryption key to encrypt the company's data as well as customer data. To do that, we will be using another AWS managed Service KMS.
+
+#### Setting up the KMS
+
+AWS Key Management Service (KMS) is a fully managed service provided by Amazon Web Services (AWS) that allows you to create and control encryption keys for your AWS services and applications. It provides a secure and centralized key management solution, enabling you to encrypt data stored in AWS services and your own applications using keys stored in KMS. Let's create a key that would be used to encrypt the database.
+
+- In the AWS Service Menu, search for KMS
+- Click on create key
+  ![alt text](Images/Img_71.png)
+- Give the key a name and a description
+- In the Define key administrative permissions option, select the user we've been using to log in
+- Also select the same user as the key user. Ideally, we should have a different user for administering the key, and a different user of using the key. However, for this training project, we will be using the same user.
+  ![alt text](Images/img_72.png)
+- Complete the remaining steps with the default values and click create.
+  ![alt text](Images/img_73.png)
+
+We've successfully created an encryption key. Now, let's provision the RDS.
+
+- From the AWS Service Menu, search for RDS and then Subnet Group.
+- Click on create subnet group and provide the following details:
+
+  - Give the subnet group a name and description
+  - Select the `ytech` VPC and pick just the two AZs we've been creating our resources in
+  - Within the subnets, select the two private subnets without access to the internet. The rds would be hosted within the private subnets.
+    ![alt text](Images/Img_77.png)
+
+We've set up the db subnet group. Now, let's create the RDS
+
+- From the right pane, select database > Create Database
+- We will be using MySQL as the database engine for this project.
+  ![alt text](Images/img_74.png)
+- The project requires version 8 and above, so we select any of the stable version 8
+- For template, select `Dev/TesT` and the Multi AZ Instance
+  ![alt text](Images/img_75.png)
+- In the settings section, give the rds a name and, then choose a login username or use the default `admin`.
+- Select managed in AWS Secrets Manager and then select the encryption key `rds_key` we created earlier
+  ![alt text](Images/img_76.png)
+- In the instance configuration section, select Burstable Class and choose T2/3.Micro
+- Storage, also select general purpose and reduce the size to 20Gi
+  ![alt text](Images/Img_80.png)
+- In the connectivity Section, select Do not connect to an EC2 Instance. We can manually create one later
+- Select the `ytech` VPC and then the subnet group created earlier
+- For public access, select no as we don't want the database to be accessible from the internet
+  ![alt text](Images/img_79.png)
+- Select the `backend-SG` we created for backend services
+- Create the required tags and then leave the rest setting in their default value and then click create
+  ![alt text](Images/Img_80.png)
+
+And there you have it, the database has been created.
+![alt text](Images/img_81.png)
+
+### Summary
+
+To summarize, using the network diagram below, we created and AWS organization and within the organization, created and account and some policies to enforce compliance with certain requirements.
+
+After that was done, we created a VPC with 4 subnets. 2 Public and 2 Private. An Internet gateway was configured to route internet traffic, and a NAT Gateway was configured for managing private network traffic.
+
+Web servers were configured in the private subnet and an Application load balancer created to direct traffic from the internet to the web servers. A database was also created using AWS RDS.
+
+![alt text](Images/Img_01.png)
