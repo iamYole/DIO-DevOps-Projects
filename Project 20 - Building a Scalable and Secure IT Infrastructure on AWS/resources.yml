@@ -59,7 +59,7 @@ Security_Groups:
   - name: efs_SG 
     description: Security group for the EFS volume
     vpc: ytech-vpc
-    allow_traffic: webservers_SG, nginx_SG 
+    allow_traffic: NFS, webservers_SG, nginx_SG 
 
   - name: bastion_SG 
     description: Security group for the Bastion Host
@@ -95,9 +95,23 @@ EC2 Instances:
       - htop 
       - nginx 
 
+  - name: BASTION_HOST 
+    OS: Red Hat Enterprise Linux 9
+    AMI: ami-0fe630eb857a6ec83
+    type: T2.mirco
+    vpc: ytech-vpc
+    availability_zone: eu-west-2a | eu-west-2b
+    subnet: Any public subnet 
+    key: web_key
+    security_group: bastion_SG 
+    installed_softwares:
+      - ansible  
+      - git  
+
+
   - name: WEBSERVER 
-    OS: CentOS 9 with Support by Supported Images 
-    AMI: ami-0d92a87ad2f33f38d
+    OS: Ubuntu Server 22.04 LTS
+    AMI: ami-080e1f13689e07408
     type: T2.mirco
     vpc: ytech-vpc
     availability_zone: eu-west-2a | eu-west-2b

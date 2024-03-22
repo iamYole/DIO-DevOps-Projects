@@ -88,7 +88,7 @@ After the OUs and Accounts have been created, the next set would be to log into 
 - We are now logged into the account `devops_admin@yoletechsolutions`
   ![alt text](Images/Img_11.png)
 
-#### Service Control Policies (SCP)
+### Service Control Policies (SCP)
 
 SCPs allow administrators to establish granular controls at the organizational level to enforce security, compliance, and governance requirements across all accounts within an AWS organization. Examples of such requirements could be restricting member accounts of OUs from accidentally leaving the Organization, restricting root users from creating some resources, limiting the Sandbox OU to just T2.micro, just to mention a few. Now, let's create some and apply them to our OUs.
 
@@ -166,7 +166,7 @@ Now, let's add these polices to the accounts.
 
 We can log to the different accounts and test the organization policy is being enforced.
 
-#### Tag Policies
+### Tag Policies
 
 In addition to SCPs defined above, we can also enforce the requirement that all resources must be tagged. We've been asked to create the following tags for all resources:
 
@@ -214,7 +214,7 @@ Now, let's create our hosted Zone.
 
 We will test this later. Next, let's create/validate our domain with a certificate. This will enable us to create secure applications using https or TLS.
 
-#### Creating a Certificate
+### Creating a Certificate
 
 - From the AWS management console, search for Certificate Manager.
 - From the Certificate manager page, click on request certificate > request public certificate
@@ -250,7 +250,7 @@ Link to the complete yaml file can be found [here](https://github.com/iamYole/DI
 
 For a more detailed step by step guide on how to create the VPC, refer to an earlier project - [Implementing Networking Concepts in AWS (VPC, Subnets, IG, NAT, Routing, etc](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2015%20-%20Networking%20in%20AWS/README.md)
 
-#### Creating the VPC
+### Creating the VPC
 
 Remember we are creating the entire infrastructure using the `devops_admin@ytech-solutions` account.
 
@@ -261,9 +261,9 @@ Remember we are creating the entire infrastructure using the `devops_admin@ytech
   ![alt text](Images/Img_28.png)
   We now how our vpc created.
 
-#### Creating the Subnets
+### Creating the Subnets
 
-- Click on Subnets > Create Subnet from the top right corner of the page, and then create 4 subnets using details in the `resources.yml` file. Ensure the subnets are created in the ytech-vpc.
+- Click on Subnets > Create Subnet from the top right corner of the page, and then create 4 subnets using details in the [resources.yml](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2020%20-%20Building%20a%20Scalable%20and%20Secure%20IT%20Infrastructure%20on%20AWS/resources.yml) file. Ensure the subnets are created in the ytech-vpc.
   ![alt text](Images/Img_29.png)
 
 #### Creating the Elastic IP Address
@@ -273,14 +273,14 @@ Remember we are creating the entire infrastructure using the `devops_admin@ytech
 - Note that we require a total of three (3) Elastic IP addresses for this project, but we will be creating just one at the moment due to how Amazon charge for this resource. Others would be created when we need them.
   ![alt text](Images/Img_32.png)
 
-#### Creating the Internet Gateway
+### Creating the Internet Gateway
 
 - Click on Internet gateways under the VPC menu > Create Internet Gateway.
 - Type in `IGW` and the name and then create.
 - Once the Internet Gateway is created, add it to the VPC, by selecting Actions > Attach to VPC. Select the `ytech-vpc` and then attach.
   ![alt text](Images/Img_30.png)
 
-#### Creating the NAT Gateway
+### Creating the NAT Gateway
 
 - From the left pane in the VPC console, select NAT Gateways, and then from the top right corner, click on the Create NAT gateway button.
 - In the Create NAT gateway page, let's give our NAT gateway a name and then select any of our Public Subnets. Also select the Elastic IP we created earlier and then save.
@@ -312,9 +312,9 @@ At this point, we should have a functional VPC that routes traffic to the Intern
 
 ![alt text](Images/Img_38.png)
 
-#### Creating the Security Groups
+### Creating the Security Groups
 
-Now, let's create the different Security Groups for our resources within the VPC. Please refer once again to the `resources.yml` file containing the configuration requirements.
+Now, let's create the different Security Groups for our resources within the VPC. Please refer once again to the [resources.yml](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2020%20-%20Building%20a%20Scalable%20and%20Secure%20IT%20Infrastructure%20on%20AWS/resources.yml) file containing the configuration requirements.
 
 From the Services Menu, search for Elastic Compute (EC2) and go to the dashboard.
 
@@ -328,14 +328,14 @@ The top section (Resources) shows a breakdown of all the resources (EC2 Instance
 - Tag accordingly and then save.
   ![alt text](Images/Img_40.png)
 - Repeat the steps above for the `nginx_SG`. However, this time, we are allowing traffic from only the `alb_SG` created earlier.
-- Use the information from the `resource.yml` to create the remaining security groups.
+- Use the information from the [resource.yml](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2020%20-%20Building%20a%20Scalable%20and%20Secure%20IT%20Infrastructure%20on%20AWS/resources.yml) to create the remaining security groups.
 - For the `backend_SG`, ensure only ssh access if allowed, and only traffic from the company's network is allowed connection.
   ![alt text](Images/Img_42.png)
 
 Note that the inbound rules defined at this stage are not final. As we create resources within the security groups, more more ports would be opened to all traffic to the specific applications. For instance, NGINX may run on port `8080`, the database on `3306` etc. Now, we should have created all the security groups required at this stage.
 ![alt text](Images/Img_43.png)
 
-### Part 7 - Compute Services
+### Part 8 - Compute Services
 
 Compute services in Amazon Web Services (AWS) are tools that allow users to run and manage computing resources in the cloud. These services offer flexible and scalable options for running applications and workloads without the need for owning physical servers.
 
@@ -345,9 +345,9 @@ For this Project, we will be configuring several EC2 Instances, for the servers,
 
 Let's begin by configuring the Compute Resources for the Nginx Server.
 
-#### Compute Resources for the Nginx
+### Compute Resources for the Nginx
 
-1. Provisioning the Instance Using the information in the `resource.yml` file, provision the instance. The instance should be bootstrapped with the `userdata` script below:
+1. Provisioning the Instance Using the information in the [resource.yml](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2020%20-%20Building%20a%20Scalable%20and%20Secure%20IT%20Infrastructure%20on%20AWS/resources.yml) file, provision the instance. The instance should be bootstrapped with the `userdata` script below:
 
    > ```bash
    > #!/bin/bash
@@ -398,7 +398,7 @@ Let's begin by configuring the Compute Resources for the Nginx Server.
     ![alt text](Images/Img_47.png)
     Launch Template Created.
 
-4. Configure Target Groups
+4. Configure Target Groups  
    Target groups are logical groupings of instances that can receive traffic from a load balancer. Target groups are used in conjunction with Application Load Balancers (ALBs) and Network Load Balancers (NLBs) to route incoming requests to the appropriate targets based on routing rules and health checks.
 
    Since we will be having multiple Nginx Servers, we will need a target group in where the load balancers we will be creating can route traffic to.
@@ -418,4 +418,110 @@ Let's begin by configuring the Compute Resources for the Nginx Server.
 - Click in include pending below to move them the the target section.
   ![alt text](Images/Img_49.png)
 
-5. Configure Auto Scaling
+5. Configure Auto Scaling  
+   Auto Scaling Groups allows you to automatically add or remove instances in response to changing application load or resource utilization, ensuring that your application can seamlessly handle fluctuations in traffic while maintaining performance and availability.
+
+   - From the left pane, select Auto Scaling Group > Create Auto Scaling Group.
+     ![alt text](Images/Img_50.png)
+     - Give it a descriptive name
+     - Select the nginx launch template created earlier
+
+- Click next to the instance launch options
+  ![alt text](Images/Img_51.png)
+  - Select the `ytech` VPC and select the two public subnets from the drop down list
+- Click next, and select no load balancer as we will be creating one later.
+- In the `Configure group size and scaling` setting, choose a min and max desired capacity for the number in instance we want running. Since we are cost conscious, we will be selecting `2` as min and `4` as max.
+- Leave the reset options in their default settings and click next
+- Add a tag and the create the Auto Scaling Group
+  ![alt text](Images/Img_52.png)
+- After the Auto Scaling Group has been created, we need to now create a dynamic scaling policy that will automatically scale up or down the instances.
+- Select the auto scaling group and then click on create dynamic scaling policy. Fill in the details as is in the image below and the save
+  ![alt text](Images/Img_53.png)
+
+### Compute Resources for the Bastion Host
+
+A bastion host, sometimes referred to as a jump server or a pivot server, is a specially configured server that acts as a secure gateway for accessing and managing other servers in a private network. Bastion hosts are typically placed within a public subnet of a Virtual Private Cloud (VPC) or within a demilitarized zone (DMZ) in on-premises environments.
+
+It is very important the bastion host is secured and that also includes the Operating System its running on. There are specially created AMI with enhanced security settings that can be used for this. CIS (Center for Internet Security) has some AMIs for different OSs link ubuntu, Amazon Linux etc that can be used for this. However, these come at a cost.
+
+With that being said, lets provision a new EC2 Instance for the Bastion Host using the details stated in the [resources.yaml](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2020%20-%20Building%20a%20Scalable%20and%20Secure%20IT%20Infrastructure%20on%20AWS/resources.yml) file.
+
+The script below can be used to bootstrap the instance with the required softwares
+
+> ```bash
+> #!/bin/bash
+> # Update package lists and install required packages
+> yum update -y
+>
+> # Install Git and Ansible
+> yum install -y git ansible-core python ntp net-tools vim wget telnet chrony
+>
+> # Start and enable the NTP service
+> systemctl start chronyd
+> systemctl enable chronyd
+> ```
+
+- Log in to the Bastion Host and confirm the packages were installed as expected.
+  ![alt text](Images/Img_54.png)
+- Just like we did in the previous section, create an Image from this provisioned Bastion Host.
+  ![alt text](Images/Img_55.png)
+- Create a Launch Template using the Image with the necessary settings (VPC, Security Groups, Login Key etc)
+  ![alt text](Images/Img_56.png)
+- Launch a new Bastion Host in the other public subnet
+- Create a Target Group for the Bastion Hosts
+  - This time, the Protocol should be `TCP`, and the Port `22`.
+    ![alt text](Images/Img_57.png)
+- Since this Bastion host would be used primarily to connect to other servers within the organization, there would be no need to create an autoscaling group for it at this moment.
+
+### Compute Resources for the Web Servers
+
+Just like to previous two sections, provision a new instance for the Web Servers using the details in the [resources.yaml](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2020%20-%20Building%20a%20Scalable%20and%20Secure%20IT%20Infrastructure%20on%20AWS/resources.yml) file.
+
+The company has two separate applications(Tooling and WordPress), so we would be creating the resources of both. Let's begin with the tooling site:
+
+- Using the details from the `resource.yaml` file, launch an instance called Tooling_Web.
+- Enure the necessary softwares are installed using the `userdata` script below:
+  > ```bash
+  > #!/bin/bash
+  >
+  > # Update package lists
+  > sudo apt update
+  >
+  > # Install required packages
+  > sudo apt install -y python3 ntp net-tools vim wget git htop php
+  >
+  > # Cloning the tooling site
+  > git clone https://github.com/darey-io/tooling.git
+  >
+  > # Move the Web Files to the html directory
+  > cd tooling/html
+  > cp -R  * /var/www/html
+  > ```
+- Launch another EC2 Instance and name is WordPress Server
+- Enure the necessary softwares are installed using the `userdata` script below:
+  > ```bash
+  > #!/bin/bash
+  >
+  > # Update package lists
+  > sudo apt update
+  >
+  > # Install required packages
+  > sudo apt install -y python ntp net-tools vim wget git htop php
+  >
+  > # Install WordPress and its dependencies
+  > sudo apt install -y wordpress
+  > ```
+- Create Images for Tooling and WordPress
+  ![alt text](Images/Img_58.png)
+- Create Launch Templates for both web servers
+  ![alt text](Images/Img_59.png)
+- Create a Target group for the web servers
+  ![alt text](Images/Img_60.png)
+- Create an Auto Scaling Group for the web servers
+  ![alt text](Images/Img_61.png)
+
+### Creating AWS Elastic File System
+
+Elastic File System (EFS) is a scalable, fully managed file storage service provided by Amazon Web Services (AWS). It is designed to provide scalable and elastic file storage for use with AWS cloud services and on-premises resources.
+
+Since we will be having clusters of dynamic web applications where users would be saving and retrieving data, its important we provide consistent data to the users. We will create an EFS volume to host data from the web servers. One for the Tooling Site, and another for WordPress. Let's begin.
