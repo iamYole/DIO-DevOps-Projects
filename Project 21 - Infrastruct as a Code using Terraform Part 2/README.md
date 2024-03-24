@@ -356,6 +356,15 @@ From the diagram above, let's recap on what we've created so far and what's pend
 - [x] One (1) Private Route Table
   - [x] Four (4) Subnet Associations to the Private Route Table
 - [x] IAM Roles and Policies for Access Management
+- [] Security Groups
+- [] Provision EC2 Instances for Bastion Nginx Tooling and WordPress
+- [] Create AMI and Launch Templates for Nginx Tooling and WordPress
+- [] Create Target Groups for Nginx Tooling and WordPress
+- [] Create Auto Scaling Groups for Nginx Tooling and WordPress
+- [] Create Certificate using AWS Certificate Manager
+- [] Create External and Internal Application Load Balancer
+- [] Create Elastic File System for the Web Servers
+- [] Create the KMS and RDS
 
 Next, we will be creating the Security Groups.
 
