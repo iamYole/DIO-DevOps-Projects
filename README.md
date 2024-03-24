@@ -4,7 +4,7 @@
    Using linux commands for normal day to day operations as well as commands for file manipulation and basic system administration.
 2. Project 2 - [Basic Git Operations](https://github.com/iamYole/DIO-Projects/blob/main/Project%202%20-%20Basic%20Git%20Operations/README.md)  
    This project is a collection of beginner-friendly tasks for an introduction to the world of version control.
-3. Project 3 - [Deploy a simple web application using the LAMP web STACK ](<https://github.com/iamYole/DIO-Projects/blob/main/Project%203%20-%20LAMP(Linux%2C%20Apache%2C%20MySql%2C%20PhP)%20Stack/README.md>)
+3. Project 3 - [Deploy a simple web application using the LAMP web STACK ](<https://github.com/iamYole/DIO-Projects/blob/main/Project%203%20-%20LAMP(Linux%2C%20Apache%2C%20MySql%2C%20PhP)%20Stack/README.md>)  
    In this project, we will be using the LAMP (Linux, Apache, MySql and PhP) web stack to deploy a simple web application. The project provides details on how to configure, manage and secure the technologies(Linux, Apapche, MySql, PhP).
 4. Project 4 - [Deploy a simple web application using the LEMP web STACK](<https://github.com/iamYole/DIO-Projects/blob/main/Project%204%20-%20LEMP%20(Linux%2C%20Nginx%2C%20MySql%2C%20PhP)%20Stack/README.md>)  
    In this project, we will be using the LEMP (Linux, Nginx, MySql and PhP) web stack to deploy a simple web application that reads data from a database. The project provides details on how to configure, manage and secure the technologies(Linux, Nginx, MySql, PhP). It also provides a basic introduction to **C R ~~U~~ ~~D~~ (Create Read ~~Update~~ ~~Delete~~)** Operations in a database.
@@ -24,7 +24,7 @@
     In this project, we will install and configure a Jenkins server to automate the deployment of the same application whenever the developers make a change to the source code by adding a feature to the application or fixing a bug.
 12. Project 12 - [Ansible (Automating simple tasks with Ansible)](https://github.com/iamYole/DIO-Projects/blob/main/Project%2012%20-%20Automating%20simple%20tasks%20with%20Ansible/README.md)  
     This would be an introductory project to the world of ansible. In this project, we will install ansible and automate simple tasks with ansible
-13. Project 13 - [More on Ansible (Imports and Assignments)](<https://github.com/iamYole/DIO-Projects/blob/main/Project%2013%20-%20More%20on%20Ansible%20(Imports%20and%20Assignments)/README.md>)
+13. Project 13 - [More on Ansible (Imports and Assignments)](<https://github.com/iamYole/DIO-Projects/blob/main/Project%2013%20-%20More%20on%20Ansible%20(Imports%20and%20Assignments)/README.md>)  
     In this project, we will explore more on Ansible, specifically using Imports and Assignments to organize and structure our playbooks efficiently.
 14. Project 14 - [More on Ansible 2 (Dynamic Assignments(Include) and Community Roles)](<https://github.com/iamYole/DIO-Projects/blob/main/Project%2014%20-%20More%20on%20Asible%202%20(Include%20and%20Coomunity%20Roles)/README.md>)  
     In this project, we will explore more way to structure our ansible project using the **Include** feature. We will also explore some community or pre-built roles in ansible.
@@ -32,13 +32,13 @@
     In this Project, we will be setting up and configuring various AWS services to build a scalable, secure, and efficient network infrastructure. We will do this by creating Virtual Private Cloud (VPC), Private and Public Subnets, Internet Gateway (IG), NAT Gateway, Security Groups, Network ACL etc.
 16. Project 16 - [Infrastructure as a Code (IaC) using Terraform in AWS](https://github.com/iamYole/DIO-Projects/blob/main/Project%2016%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform/README.md)  
     In this project, we wil be learning a concept called Infrastructure as a Code (IaC) to manage and provision cloud resources. Iac is all about using code rather than manual processes to create and provision our infrastructures. Terraform is a popular IaC tool that enables you to define and deploy infrastructure across various cloud providers, including AWS.
-17. Project 17 - [Implementing CICD Pipeline for Terraform using Jenkins](https://github.com/iamYole/DIO-Projects/blob/main/Project%2017%20-%20Implementing%20CICD%20Pipeline%20for%20Terraform%20using%20Jenkins/README.md)
+17. Project 17 - [Implementing CICD Pipeline for Terraform using Jenkins](https://github.com/iamYole/DIO-Projects/blob/main/Project%2017%20-%20Implementing%20CICD%20Pipeline%20for%20Terraform%20using%20Jenkins/README.md)  
     Setting up a CI/CD (Continuous Integration/Continuous Deployment) pipeline for Terraform using Jenkins involves a series of steps. In this project, we will set up a Jenkins from a docker image and then and also install Terraform CLI to implement the CICD Pipeline.
-18. Project 18 - [End to End Continuous Integration (CI) project using JENKINS | ANSIBLE | ARTIFACTORY | SONARQUBE | PHP](https://github.com/iamYole/DIO-Projects/tree/main/Project%2018%20-%20End%20to%20End%20Continous%20Intergration%20Project#readme)
+18. Project 18 - [End to End Continuous Integration (CI) project using JENKINS | ANSIBLE | ARTIFACTORY | SONARQUBE | PHP](https://github.com/iamYole/DIO-Projects/tree/main/Project%2018%20-%20End%20to%20End%20Continous%20Intergration%20Project#readme)  
     In this project, we will be taking a deeper look at **Continous Intergration** in practice. Here, will use several CI softwares like Jenkins, Ansible, SonarQube, etc to drive this implementation.
-19. Project 19 - [Containerization with Docker](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2019%20-%20Containerization/README.md)
+19. Project 19 - [Containerization with Docker](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2019%20-%20Containerization/README.md)  
     THis project would be a basic introduction to containers(Docker). We will also see Docker in action by deploy our tooling application using docker.
 20. Project 20 - [Building a Scalable and Secure IT Infrastructure on AWS for a Company](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2020%20-%20Building%20a%20Scalable%20and%20Secure%20IT%20Infrastructure%20on%20AWS/README.md)  
     In this project, we will be designing the IT infrastructure for a fictitious company using AWS from scratch. Topics that would be covered includes AWS Organization, AWS Accounts and IAM, Virtual Private Cloud (VPC) Configuration and Networking etc.
-21. Project 21 - [Infrastructure as a Code (IaC) using Terraform in AWS Part 2]()
+21. Project 21 - [Infrastructure as a Code (IaC) using Terraform in AWS Part 2](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2021%20-%20Infrastruct%20as%20a%20Code%20using%20Terraform%20Part%202/README.md)  
     In this project, we will be provisioning more resources in AWS using Terraform. Specifically, we will be provisioning the network infrastructures that were created in the previous project.
