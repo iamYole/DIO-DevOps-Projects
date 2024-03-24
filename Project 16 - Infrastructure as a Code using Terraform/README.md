@@ -1,6 +1,6 @@
 # Infrastructure as a Code (IaC) using Terraform in AWS
 
-nfrastructure as Code (IaC) is a methodology that involves managing and provisioning computing infrastructure through machine-readable script files, rather than through physical hardware configuration or interactive configuration tools. With IaC, you describe your infrastructure's configuration using a high-level programming language or a domain-specific language (DSL), and then use a tool to automate the provisioning and management of those resources.
+Infrastructure as Code (IaC) is a methodology that involves managing and provisioning computing infrastructure through machine-readable script files, rather than through physical hardware configuration or interactive configuration tools. With IaC, you describe your infrastructure's configuration using a high-level programming language or a domain-specific language (DSL), and then use a tool to automate the provisioning and management of those resources.
 
 **Terraform** is an open-source Infrastructure as Code (IaC) tool developed by _HashiCorp_. It allows users to define and provision infrastructure resources in a declarative configuration language. With Terraform, you can manage and automate the deployment of infrastructure across various cloud providers such as AWS, as well as on-premises environments.
 
