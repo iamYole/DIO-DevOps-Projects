@@ -356,19 +356,10 @@ From the diagram above, let's recap on what we've created so far and what's pend
 - [x] One (1) Private Route Table
   - [x] Four (4) Subnet Associations to the Private Route Table
 - [x] IAM Roles and Policies for Access Management
-- [] Security Groups
-- [] Provision EC2 Instances for Bastion Nginx Tooling and WordPress
-- [] Create AMI and Launch Templates for Nginx Tooling and WordPress
-- [] Create Target Groups for Nginx Tooling and WordPress
-- [] Create Auto Scaling Groups for Nginx Tooling and WordPress
-- [] Create Certificate using AWS Certificate Manager
-- [] Create External and Internal Application Load Balancer
-- [] Create Elastic File System for the Web Servers
-- [] Create the KMS and RDS
 
 Next, we will be creating the Security Groups.
 
-### Creating the Security Groups
+## Creating the Security Groups
 
 Create a new file called `security_groups.tf` with the code below:
 
@@ -600,3 +591,295 @@ The code above basically creates the security groups that would be required, and
 
 The Security Groups created
 ![alt text](Images/Img_09.png)
+
+## Create the Certificate using AWS Certificate Manager
+
+I've already purchased my domain `iamyole.uk` from GoDaddy.com, so we will be issuing a certificate using the AWS Certificate Manager.
+
+Create a file called `cert.tf` with the code below:
+
+> ```bash
+> # The entire section creates a certificate, public zone, and validates the certificate using DNS method.
+>
+> # Create the certificate using a wildcard for all the domains created in iamyole.uk
+>
+> resource "aws_acm_certificate" "iamyole" {
+>  domain_name       = "*.iamyole.uk"
+>  validation_method = "DNS"
+> }
+>
+> #creating the hosted zone
+> resource "aws_route53_zone" "iamyole" {
+>  name = "iamyole"
+>
+>  tags = merge(
+>    var.tags, {
+>      Name = "${var.tag_prefix}_Domain"
+>    }
+>  )
+> }
+>
+> # calling the hosted zone
+>  data "aws_route53_zone" "iamyole" {
+>   depends_on   = [aws_route53_zone.iamyole]
+>   name         = "iamyole.uk"
+>   private_zone = false
+> }
+>
+> # selecting validation method
+> resource "aws_route53_record" "iamyole" {
+>  for_each = {
+>    for dvo in aws_acm_certificate.iamyole.domain_validation_options : dvo.domain_name => {
+>      name   = dvo.resource_record_name
+>      record = dvo.resource_record_value
+>      type   = dvo.resource_record_type
+>    }
+>  }
+>
+>  allow_overwrite = true
+>  name            = each.value.name
+>  records         = [each.value.record]
+>  ttl             = 60
+>  type            = each.value.type
+>  zone_id         = data.aws_route53_zone.iamyole.zone_id
+> }
+>
+> # validate the certificate through DNS method
+>
+> resource "aws_acm_certificate_validation" "iamyole" {
+>  certificate_arn         = aws_acm_certificate.iamyole.arn
+>  validation_record_fqdns = [for record in aws_route53_record.iamyole : record.fqdn]
+> }
+>
+> # create records for tooling
+>
+> resource "aws_route53_record" "tooling" {
+>  zone_id = data.aws_route53_zone.iamyole.zone_id
+>  name    = "tooling.iamyole.uk"
+>  type    = "A"
+>
+>  alias {
+>    name                   = aws_lb.ext-alb.dns_name
+>    zone_id                = aws_lb.ext-alb.zone_id
+>    evaluate_target_health = true
+>  }
+> }
+>
+>
+> # create records for wordpress
+>
+> resource "aws_route53_record" "wordpress" {
+>  zone_id = data.aws_route53_zone.iamyole.zone_id
+>  name    = "wordpress.iamyole.uk"
+>  type    = "A"
+>
+>  alias {
+>    name                   = aws_lb.ext-alb.dns_name
+>    zone_id                = aws_lb.ext-alb.zone_id
+>    evaluate_target_health = true
+>  }
+> }
+> ```
+
+## Creating the Load Balancers, Target Groups and Listeners
+
+First, we will be creating the Application Load Balancer (ALB). Create a file called `alb.tf` with the code:
+
+> ```bash
+> resource "aws_lb" "ext-alb" {
+>  name     = "ext-alb"
+>  internal = false
+>  security_groups = [
+>       aws_security_group.ext-alb-sg.id,
+>     ]
+>
+>  subnets = [
+>    aws_subnet.public[0].id,
+>    aws_subnet.public[1].id
+>  ]
+>
+>  tags = merge(
+>    var.tags,
+>    {
+>      Name = "${var.tag_prefix}_ACS-ext-alb"
+>    },
+>  )
+>
+>  ip_address_type    = "ipv4"
+>  load_balancer_type = "application"
+> }
+> ```
+
+The code above creates an application load balancer named `ext-alb`, and configures several properties like the the subnet, ip address type, load balancer type, internal or external etc.
+
+Now in order to direct the ALB n where to route traffic to, we need to create a Target Group. still within the `alb.tf` file, add the following lines of code
+
+> ```bash
+> # Creating the Target Group
+> resource "aws_lb_target_group" "nginx-tgt" {
+>  health_check {
+>    interval            = 10
+>    path                = "/healthstatus"
+>    protocol            = "HTTPS"
+>    timeout             = 5
+>    healthy_threshold   = 5
+>    unhealthy_threshold = 2
+>  }
+>  name        = "nginx-tgt"
+>  port        = 443
+>  protocol    = "HTTPS"
+>  target_type = "instance"
+>  vpc_id      = aws_vpc.dio-vpc.id
+> }
+> ```
+
+Next, we add a Listener to the Target Group with the code below
+
+> ```bash
+> resource "aws_lb_listener" "nginx-listner" {
+>  load_balancer_arn = aws_lb.ext-alb.arn
+>  port              = 443
+>  protocol          = "HTTPS"
+>  certificate_arn   = aws_acm_certificate_validation.iamyole.certificate_arn
+>
+>  default_action {
+>    type             = "forward"
+>    target_group_arn = aws_lb_target_group.nginx-tgt.arn
+>  }
+> }
+> ```
+
+Finally, since we won't be connecting to the Web Applications with the Server IP, we need save the ALB DNS name. Add the following lines of code to `alb.tf` file to print out the DNS name.
+
+> ```bash
+> output "alb_dns_name" {
+>  value = aws_lb.ext-alb.dns_name
+> }
+>
+> output "alb_target_group_arn" {
+>  value = aws_lb_target_group.nginx-tgt.arn
+> }
+> ```
+
+Next, within the same file, let's create the Internal Load Balancer for the web servers
+
+> ```bash
+> # ----------------------------
+> #Internal Load Balancers for webservers
+> #---------------------------------
+>
+> resource "aws_lb" "ialb" {
+>  name     = "ialb"
+>  internal = true
+>  security_groups = [
+>    aws_security_group.int-alb-sg.id,
+>  ]
+>
+>  subnets = [
+>    aws_subnet.private[0].id,
+>    aws_subnet.private[1].id
+>  ]
+>
+>  tags = merge(
+>    var.tags,
+>    {
+>      Name = "ACS-int-alb"
+>    },
+>  )
+>
+>  ip_address_type    = "ipv4"
+>  load_balancer_type = "application"
+> }
+> ```
+
+Again, we create the Target Group for the web servers and route traffic from the internal ALB to the traffic group
+
+> ```bash
+> # --- target group  for wordpress -------
+>
+> resource "aws_lb_target_group" "wordpress-tgt" {
+>  health_check {
+>    interval            = 10
+>    path                = "/healthstatus"
+>    protocol            = "HTTPS"
+>    timeout             = 5
+>    healthy_threshold   = 5
+>    unhealthy_threshold = 2
+>  }
+>
+>  name        = "wordpress-tgt"
+>  port        = 443
+>  protocol    = "HTTPS"
+>  target_type = "instance"
+>  vpc_id      = aws_vpc.dio-vpc.id
+> }
+>
+>
+> # --- target group for tooling -------
+>
+> resource "aws_lb_target_group" "tooling-tgt" {
+>  health_check {
+>    interval            = 10
+>    path                = "/healthstatus"
+>    protocol            = "HTTPS"
+>    timeout             = 5
+>    healthy_threshold   = 5
+>    unhealthy_threshold = 2
+>  }
+>
+>  name        = "tooling-tgt"
+>  port        = 443
+>  protocol    = "HTTPS"
+>  target_type = "instance"
+>  vpc_id      = aws_vpc.dio-vpc.id
+> }
+> ```
+
+Now, we need to create a listener and add it to the Load Balancer
+
+> ```bash
+> # For this aspect a single listener was created for the wordpress which is default,
+> # A rule was created to route traffic to tooling when the host header changes
+>
+> resource "aws_lb_listener" "web-listener" {
+>  load_balancer_arn = aws_lb.ialb.arn
+>  port              = 443
+>  protocol          = "HTTPS"
+>  certificate_arn   = aws_acm_certificate_validation.iamyole.certificate_arn
+>
+>  default_action {
+>    type             = "forward"
+>    target_group_arn = aws_lb_target_group.wordpress-tgt.arn
+>  }
+> }
+>
+> # listener rule for tooling target
+>
+> resource "aws_lb_listener_rule" "tooling-listener" {
+>  listener_arn = aws_lb_listener.web-listener.arn
+>  priority     = 99
+>
+>  action {
+>    type             = "forward"
+>    target_group_arn = aws_lb_target_group.tooling-tgt.arn
+>  }
+>
+>  condition {
+>    host_header {
+>      values = ["tooling.iamyole.uk"]
+>    }
+>  }
+> }
+> ```
+
+We've now written the code to create the DNS Zone (ROute53), The Certificate, The Load Balancers, Target Groups and the Listeners. Now, let's validate the code is void of any syntax errors and then implement the changes.
+
+The codes are validated
+![alt text](Images/Img_10.png)
+
+Now, let's `terraform plan` to inspect the changes
+![alt text](Images/Img_11.png)
+
+From the output above, 14 new resources would be created, 0 deleted and 0 modified. We can delay the implementation for now until we've created more resources. That way, we won't have any resource created and idle.
+
+## Creating the Auto Scaling Group, SNS, and Launch Template
