@@ -883,3 +883,399 @@ Now, let's `terraform plan` to inspect the changes
 From the output above, 14 new resources would be created, 0 deleted and 0 modified. We can delay the implementation for now until we've created more resources. That way, we won't have any resource created and idle.
 
 ## Creating the Auto Scaling Group, SNS, and Launch Template
+
+In this section, we will be creating the Auto Scaling Groups for the nginx, tooling, bastion and web server. The ASG would automatically increase (scale up) or decrease (scale down) the number of Instances required at any point in time depending on traffic/resource utilization. However, before we do this, we need to create a launch template with pre-defined settings to automatically spin the instances as required.
+
+To accomplish this, we will be creating two files `asg-bastion-nginx.tf` and `asg-tooling-wordpress.tf`.
+
+Let's start with creating some new variables that would be used in the files above. Edit the `variables.tf` and add the following lines
+
+> ```bash
+> variable "ami_RHEL_9" {
+>  default = "ami-0fe630eb857a6ec83"
+> }
+> variable "ami_Ubuntu_Sever_22" {
+>  default = "ami-080e1f13689e07408"
+> }
+> variable "instance_type" {
+>  default = "t2.micro"
+> }
+> variable "keypair" {
+>  default = null
+> }
+> ```
+
+Next, create a new folder in the root directory called `userdata`. Within the folder, create the following files, and populate it with the script as follows.
+
+- `bastion.sh`
+
+  > ```bash
+  > #!/bin/bash
+  > # Update package lists and install required packages
+  > yum update -y
+  >
+  > # Install Git and Ansible
+  > yum install -y git ansible-core python ntp net-tools vim wget telnet chrony
+  >
+  > # Start and enable the NTP service
+  > systemctl start chronyd
+  > systemctl enable chronyd
+  > ```
+
+- `nginx.sh`
+
+  > ```bash
+  > #!/bin/bash
+  > # Update package lists and install required packages
+  > yum update -y
+  >
+  > # Install required packages
+  > yum install -y python ntp net-tools vim wget telnet chrony nginx-all-modules.noarch
+  >
+  > # Start and enable the NTP service
+  > systemctl start chronyd
+  > systemctl enable chronyd
+  >
+  > # Start and enable the NGINX service
+  > systemctl start nginx
+  > systemctl enable nginx
+  > ```
+
+- `tooling.sh`
+
+  > ```bash
+  > #!/bin/bash
+  >
+  > # Update package lists
+  > sudo apt update
+  >
+  > # Install required packages
+  > sudo apt install -y python3 ntp net-tools vim wget git htop php
+  >
+  > # Cloning the tooling site
+  > git clone https://github.com/darey-io/tooling.git
+  >
+  > # Move the Web Files to the html directory
+  > cd tooling/html
+  > cp -R  * /var/www/html
+  > ```
+
+- `wordpress.sh`
+  > ```bash
+  > #!/bin/bash
+  >
+  > # Update package lists
+  > sudo apt update
+  >
+  > # Install required packages
+  > sudo apt install -y python ntp net-tools vim wget git htop php
+  >
+  > # Install WordPress and its dependencies
+  > sudo apt install -y wordpress
+  >
+  > ```
+
+Now, we can start creating the files starting with `asg-bastion-nginx.tf`
+
+> ```bash
+> # creating sns topic for all the auto scaling groups
+> resource "aws_sns_topic" "iamyole-sns" {
+>  name = "Default_CloudWatch_Alarms_Topic"
+> }
+>
+> # creating notification for all the auto scaling groups
+> resource "aws_autoscaling_notification" "iamyole_notifications" {
+>  group_names = [
+>    aws_autoscaling_group.bastion-asg.name,
+>    aws_autoscaling_group.nginx-asg.name,
+>    aws_autoscaling_group.wordpress-asg.name,
+>    aws_autoscaling_group.tooling-asg.name,
+>  ]
+>  notifications = [
+>    "autoscaling:EC2_INSTANCE_LAUNCH",
+>    "autoscaling:EC2_INSTANCE_TERMINATE",
+>    "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
+>    "autoscaling:EC2_INSTANCE_TERMINATE_ERROR",
+>  ]
+>
+>  topic_arn = aws_sns_topic.iamyole-sns.arn
+> }
+>
+> resource "random_shuffle" "az_list" {
+>  input = data.aws_availability_zones.available.names
+> }
+>
+> # launch template for bastion
+>
+> resource "aws_launch_template" "bastion-launch-template" {
+>  image_id               = var.ami_RHEL_9
+>  instance_type          = var.instance_type
+>  vpc_security_group_ids = [aws_security_group.bastion_sg.id]
+>
+>  /*   iam_instance_profile {
+>    name = aws_iam_instance_profile.ip.id
+>  } */
+>
+>  key_name = var.keypair
+>
+>  placement {
+>    availability_zone = "random_shuffle.az_list.result"
+>  }
+>
+>  lifecycle {
+>    create_before_destroy = true
+>  }
+>
+>  tag_specifications {
+>    resource_type = "instance"
+>
+>    tags = merge(
+>      var.tags,
+>      {
+>        Name = "${var.tag_prefix}_bastion-launch-template"
+>      },
+>    )
+>  }
+>
+>  user_data = filebase64("${path.module}/userdata/bastion.sh")
+> }
+>
+> # ---- Autoscaling for bastion  hosts
+>
+> resource "aws_autoscaling_group" "bastion-asg" {
+>  name                      = "bastion-asg"
+>  max_size                  = 2
+>  min_size                  = 1
+>  health_check_grace_period = 300
+>  health_check_type         = "ELB"
+>  desired_capacity          = 1
+>
+>  vpc_zone_identifier = [
+>    aws_subnet.public[0].id,
+>    aws_subnet.public[1].id
+>  ]
+>
+>  launch_template {
+>    id      = aws_launch_template.bastion-launch-template.id
+>    version = "$Latest"
+>  }
+>  tag {
+>    key                 = "Name"
+>    value               = "bastion-launch-template"
+>    propagate_at_launch = true
+>  }
+>
+> }
+>
+> # launch template for nginx
+>
+> resource "aws_launch_template" "nginx-launch-template" {
+>  image_id               = var.ami_RHEL_9
+>  instance_type          = var.instance_type
+>  vpc_security_group_ids = [aws_security_group.nginx-sg.id]
+>
+>  /*  iam_instance_profile {
+>    name = aws_iam_instance_profile.ip.id
+>  } */
+>
+>  key_name = var.keypair
+>
+>  placement {
+>    availability_zone = "random_shuffle.az_list.result"
+>  }
+>
+>  lifecycle {
+>    create_before_destroy = true
+>  }
+>
+>  tag_specifications {
+>    resource_type = "instance"
+>
+>    tags = merge(
+>      var.tags,
+>      {
+>        Name = "${var.tag_prefix}_nginx-launch-template"
+>      },
+>    )
+>  }
+>
+>  user_data = filebase64("${path.module}/userdata/nginx.sh")
+> }
+>
+> # ------ Autoscslaling group for reverse proxy nginx ---------
+>
+> resource "aws_autoscaling_group" "nginx-asg" {
+>  name                      = "nginx-asg"
+>  max_size                  = 2
+>  min_size                  = 1
+>  health_check_grace_period = 300
+>  health_check_type         = "ELB"
+>  desired_capacity          = 1
+>
+>  vpc_zone_identifier = [
+>    aws_subnet.public[0].id,
+>    aws_subnet.public[1].id
+>  ]
+>
+>  launch_template {
+>    id      = aws_launch_template.nginx-launch-template.id
+>    version = "$Latest"
+>  }
+>
+>  tag {
+>    key                 = "Name"
+>    value               = "nginx-launch-template"
+>    propagate_at_launch = true
+>  }
+>
+> }
+>
+> # attaching autoscaling group of nginx to external load balancer
+> resource "aws_autoscaling_attachment" "asg_attachment_nginx" {
+>  autoscaling_group_name = aws_autoscaling_group.nginx-asg.id
+>  lb_target_group_arn    = aws_lb_target_group.nginx-tgt.arn
+> }
+> ```
+
+Next, we create the `asg-tooling-wordpress.tf`
+
+> ```bash
+> # launch template for wordpress
+>
+> resource "aws_launch_template" "wordpress-launch-template" {
+>  image_id               = var.ami_Ubuntu_Sever_22
+>  instance_type          = var.instance_type
+>  vpc_security_group_ids = [aws_security_group.webserver-sg.id]
+>
+>  /*   iam_instance_profile {
+>    name = aws_iam_instance_profile.ip.id
+>  } */
+>
+>  key_name = var.keypair
+>
+>  placement {
+>    availability_zone = "random_shuffle.az_list.result"
+>  }
+>
+>  lifecycle {
+>    create_before_destroy = true
+>  }
+>
+>  tag_specifications {
+>    resource_type = "instance"
+>
+>    tags = merge(
+>      var.tags,
+>      {
+>        Name = "${var.tag_prefix}_wordpress-launch-template"
+>      },
+>    )
+>
+>  }
+>
+>  user_data = filebase64("${path.module}/userdata/wordpress.sh")
+> }
+>
+> # ---- Autoscaling for wordpress application
+>
+> resource "aws_autoscaling_group" "wordpress-asg" {
+>  name                      = "wordpress-asg"
+>  max_size                  = 2
+>  min_size                  = 1
+>  health_check_grace_period = 300
+>  health_check_type         = "ELB"
+>  desired_capacity          = 1
+>  vpc_zone_identifier = [
+>
+>    aws_subnet.private[0].id,
+>    aws_subnet.private[1].id
+>  ]
+>
+>  launch_template {
+>    id      = aws_launch_template.wordpress-launch-template.id
+>    version = "$Latest"
+>  }
+>  tag {
+>    key                 = "Name"
+>    value               = "wordpress-asg"
+>    propagate_at_launch = true
+>  }
+> }
+>
+> # attaching autoscaling group of wordpress application to internal loadbalancer
+> resource "aws_autoscaling_attachment" "asg_attachment_wordpress" {
+>  autoscaling_group_name = aws_autoscaling_group.wordpress-asg.id
+>  lb_target_group_arn    = aws_lb_target_group.wordpress-tgt.arn
+> }
+>
+> # launch template for tooling
+> resource "aws_launch_template" "tooling-launch-template" {
+>  image_id               = var.ami_Ubuntu_Sever_22
+>  instance_type          = var.instance_type
+>  vpc_security_group_ids = [aws_security_group.webserver-sg.id]
+>
+>  /*   iam_instance_profile {
+>    name = aws_iam_instance_profile.ip.id
+>  } */
+>
+>  key_name = var.keypair
+>
+>  placement {
+>    availability_zone = "random_shuffle.az_list.result"
+>  }
+>
+>  lifecycle {
+>    create_before_destroy = true
+>  }
+>
+>  tag_specifications {
+>    resource_type = "instance"
+>
+>    tags = merge(
+>      var.tags,
+>      {
+>        Name = "${var.tag_prefix}_tooling-launch-template"
+>      },
+>    )
+>
+>  }
+>
+>  user_data = filebase64("${path.module}/userdata/tooling.sh")
+> }
+>
+> # ---- Autoscaling for tooling -----
+>
+> resource "aws_autoscaling_group" "tooling-asg" {
+>  name                      = "tooling-asg"
+>  max_size                  = 2
+>  min_size                  = 1
+>  health_check_grace_period = 300
+>  health_check_type         = "ELB"
+>  desired_capacity          = 1
+>
+>  vpc_zone_identifier = [
+>
+>    aws_subnet.private[0].id,
+>    aws_subnet.private[1].id
+>  ]
+>
+>  launch_template {
+>    id      = aws_launch_template.tooling-launch-template.id
+>    version = "$Latest"
+>  }
+>
+>  tag {
+>    key                 = "Name"
+>    value               = "tooling-launch-template"
+>    propagate_at_launch = true
+>  }
+> }
+>
+> # attaching autoscaling group of  tooling application to internal loadbalancer
+> resource "aws_autoscaling_attachment" "asg_attachment_tooling" {
+>  autoscaling_group_name = aws_autoscaling_group.tooling-asg.id
+>  lb_target_group_arn    = aws_lb_target_group.tooling-tgt.arn
+> }
+> ```
+
+## Storage Layer and Encryption
