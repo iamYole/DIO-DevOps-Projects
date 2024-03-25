@@ -901,7 +901,7 @@ Let's start with creating some new variables that would be used in the files abo
 >  default = "t2.micro"
 > }
 > variable "keypair" {
->  default = null
+>  default = "ytech-key"
 > }
 > ```
 
@@ -1278,4 +1278,208 @@ Next, we create the `asg-tooling-wordpress.tf`
 > }
 > ```
 
+Again, to confirm the code is void of syntax errors, run `terraform validate` and then `terraform plan`.
+
 ## Storage Layer and Encryption
+
+In this section, we will be creating AWS Elastic File System, Key Management System and the RDS.
+
+Let's start with the Key Management System. Create a file called `efs.tf`
+
+> ```bash
+> # create key from key management system
+> resource "aws_kms_key" "ACS-kms" {
+>  description = "KMS key "
+>  policy      = <<EOF
+>  {
+>  "Version": "2012-10-17",
+>  "Id": "kms-key-policy",
+>  "Statement": [
+>    {
+>      "Sid": "Enable IAM User Permissions",
+>      "Effect": "Allow",
+>      "Principal": { "AWS": "arn:aws:iam::${var.account_id}:user/aws-iamYole" },
+>      "Action": "kms:*",
+>      "Resource": "*"
+>    }
+>  ]
+> }
+> EOF
+> }
+>
+> # create key alias
+> resource "aws_kms_alias" "alias" {
+>  name          = "alias/kms"
+>  target_key_id = aws_kms_key.ACS-kms.key_id
+> }
+> ```
+
+Update the `variables.tf` file with the account_id variable. Please note that this should your AWS Account ID.
+
+Still in the `efs.tf` file, let's create the Elastic File System with the code below
+
+> ```bash
+> # create Elastic file system
+> resource "aws_efs_file_system" "ACS-efs" {
+>  encrypted  = true
+>  kms_key_id = aws_kms_key.ACS-kms.arn
+>
+>  tags = merge(
+>    var.tags,
+>    {
+>      Name = "ACS-efs"
+>    },
+>  )
+> }
+>
+> # set first mount target for the EFS
+> resource "aws_efs_mount_target" "subnet-1" {
+>  file_system_id  = aws_efs_file_system.ACS-efs.id
+>  subnet_id       = aws_subnet.private[2].id
+>  security_groups = [aws_security_group.datalayer-sg.id]
+> }
+>
+> # set second mount target for the EFS
+> resource "aws_efs_mount_target" "subnet-2" {
+>  file_system_id  = aws_efs_file_system.ACS-efs.id
+>  subnet_id       = aws_subnet.private[3].id
+>  security_groups = [aws_security_group.datalayer-sg.id]
+> }
+>
+> # create access point for wordpress
+> resource "aws_efs_access_point" "wordpress" {
+>  file_system_id = aws_efs_file_system.ACS-efs.id
+>
+>  posix_user {
+>    gid = 0
+>    uid = 0
+>  }
+>
+>  root_directory {
+>    path = "/wordpress"
+>
+>    creation_info {
+>      owner_gid   = 0
+>      owner_uid   = 0
+>      permissions = 0755
+>    }
+>
+>  }
+>
+> }
+>
+>
+> # create access point for tooling
+> resource "aws_efs_access_point" "tooling" {
+>  file_system_id = aws_efs_file_system.ACS-efs.id
+>  posix_user {
+>    gid = 0
+>    uid = 0
+>  }
+>
+>  root_directory {
+>
+>    path = "/tooling"
+>
+>    creation_info {
+>      owner_gid   = 0
+>      owner_uid   = 0
+>      permissions = 0755
+>    }
+>
+>  }
+> }
+> ```
+
+Finally, let's create the `rds.tf` file
+
+> ```bash
+> # This section will create the subnet group for the RDS instance using the private subnet
+> resource "aws_db_subnet_group" "ACS-rds" {
+>  name       = "acs-rds"
+>  subnet_ids = [aws_subnet.private[2].id, aws_subnet.private[3].id]
+>
+>  tags = merge(
+>    var.tags,
+>    {
+>      Name = "${var.tag_prefix}_ACS-rds"
+>    },
+>  )
+> }
+>
+> # create the RDS instance with the subnets group
+> resource "aws_db_instance" "ACS-rds" {
+>  allocated_storage      = 20
+>  storage_type           = "gp2"
+>  engine                 = "mysql"
+>  engine_version         = "5.7"
+>  instance_class         = "db.t3.micro"
+>  db_name                = var.db_name
+>  username               = var.master-username
+>  password               = var.master-password
+>  parameter_group_name   = "default.mysql5.7"
+>  db_subnet_group_name   = aws_db_subnet_group.ACS-rds.name
+>  skip_final_snapshot    = true
+>  vpc_security_group_ids = [aws_security_group.datalayer-sg.id]
+>  multi_az               = "true"
+> }
+> ```
+
+Add the username and password variables to the variables file
+
+> ```bash
+> variable "db_name" {
+>  type = string
+> }
+> variable "master-username" {
+>  type = string
+> }
+> variable "master-password" {
+>  type = string
+> }
+> ```
+
+and then the `terraform.tfvars`
+
+> ```bash
+> master-username = "dbadmin"
+>
+> master-password = "P@ssw0rd1"
+>
+> db_name = "diobd"
+> ```
+
+## Implementing the Code
+
+The code for all the resources have been created now. Let's perform the necessary validation checks to ensure no syntax errors. Note, you may need to run `terraform init` again as we introduced the `random shuffle` module.
+
+![alt text](Images/Img_12.png)
+
+Now, `terraform plan -out=tfplan.out` to inspect all the changes
+
+44 Changes or resources to be created
+![alt text](Images/Img_13.png)
+
+As we had no errors with the code, let's run `terraform apply -auto-approve` to execute the changes.
+
+The infrastructure has now been created. We can log in to the AWS Console to verify the resources.
+
+The load balancers
+![alt text](Images/Img_14.png)
+
+The Auto Scaling Groups
+![alt text](Images/Img_15.png)
+
+The instances created from the templates
+![alt text](Images/Img_16.png)
+
+The RDS
+![alt text](Images/Img_18.png)
+We can also run `terraform state list` from the console to view the state of all terraform created resources.
+
+List of resources
+![alt text](Images/Img_19.png)
+
+We can also run `terraform destroy -target=[resource.name]` to delete a resource or `terraform destroy` to delete all resources.
+
+Earlier, we ran `terraform plan -out=tfplan.out` to save the configuration file. We can now safely run `terraform destroy` to delete all resources to avoid huge cost at the end of the month.
