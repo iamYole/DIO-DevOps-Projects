@@ -530,18 +530,23 @@ The module's `var.tf` file
 ![alt text](Images/img_14.png)
 
 and then used in the `main.tf` file here:
+
 ![alt text](Images/Img_15.png)
 
 Now, let't test this by first initializing and validating the project. The switch to the `Development WorkSpace`.
+
 ![alt text](Images/Img_16.png)
 
 Now, plan and then apply the changes.
+
 ![alt text](Images/Img_18.png)
 
 Log into the AWS Console and confirm the instance type in the `Development` Workspace is t2.micro and the tags has Development set for the environment.
+
 ![alt text](Images/Img_17.png)
 
 Also check the S3 Bucket and confirm we have different folders to store different workspace/environment
+
 ![alt text](Images/Img_20.png)
 
 Now, let's switch to the `Production` Workspace and apply the changes
