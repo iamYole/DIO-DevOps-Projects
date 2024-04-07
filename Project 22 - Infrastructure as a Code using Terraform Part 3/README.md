@@ -473,6 +473,7 @@ In the file above is very similar to the `terraform.tfvars` we will also define.
 The configuration above can be easily changed by users depending on the project or environment. Again, the complete modularized files can be found [here](https://github.com/iamYole/DIO-DevOps-Projects/tree/main/Project%2022%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%203/IaC-Modularized-Project).
 
 The final project directory now looks like this
+
 ![alt text](Images/Img_09.png)
 
 Run `terraform init` to compile the modules and make them available for use
@@ -525,6 +526,7 @@ Here, we introduced a condition to use either a t2.medium or t2.mirco as the ins
 ![alt text](Images/Img_13.png)
 
 The module's `var.tf` file
+
 ![alt text](Images/img_14.png)
 
 and then used in the `main.tf` file here:
@@ -562,3 +564,5 @@ Now to run the code, navigate to the Dev or Prod directory from your terminal an
 ![alt text](Images/Img_23.png)
 
 And that's how to use different environment with Terraform. This methods has their advantages and disadvantages, the choice of method to adapt depends on several factors.
+
+## Remember to destroy all resources from both environments after use.
