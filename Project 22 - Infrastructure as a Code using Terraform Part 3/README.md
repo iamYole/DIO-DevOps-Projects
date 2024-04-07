@@ -379,7 +379,7 @@ Initially, we hard coded the domain name, but here we are referencing the variab
 > }
 > ```
 
-Here, we are using `var.ext-alb_dns_name` and `var.ext-alb_zone_id` in place of `aws_lb.ext-alb.dns_name` and `aws_lb.ext-alb.zone_id`. The changes are a lot so i'll be dropping the complete modularized project files [here]().
+Here, we are using `var.ext-alb_dns_name` and `var.ext-alb_zone_id` in place of `aws_lb.ext-alb.dns_name` and `aws_lb.ext-alb.zone_id`. The changes are a lot so i'll be dropping the complete modularized project files [here](https://github.com/iamYole/DIO-DevOps-Projects/tree/main/Project%2022%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%203/IaC-Modularized-Project).
 
 Now, to use this module, we will create a `main.tf` file in the root directory with the code below:
 
@@ -470,6 +470,95 @@ In the file above is very similar to the `terraform.tfvars` we will also define.
 > tooling_record   = "tooling.iamyole.uk"
 > ```
 
-The configuration above can be easily changed by users depending on the project or environment. Again, the complete modularized files can be found [here]()
+The configuration above can be easily changed by users depending on the project or environment. Again, the complete modularized files can be found [here](https://github.com/iamYole/DIO-DevOps-Projects/tree/main/Project%2022%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%203/IaC-Modularized-Project).
 
-## Working with different Environment
+The final project directory now looks like this
+![alt text](Images/Img_09.png)
+
+Run `terraform init` to compile the modules and make them available for use
+
+![alt text](Images/Img_10.png)
+
+Take note of the output `Initializing Modules....`. ALso note that Terraform will create a module directory within the .terraform directory. In the `.terraform/modules` a modules.json file will be created storing details of all the modules.
+
+Next, we run `terraform validate` and then `terraform plan` to inspect the changes to be made
+
+![alt text](Images/Img_11.png)
+
+## Terraform Workspace and Environments
+
+A workspace is a feature that allows you to manage multiple "instances" or "states" of your infrastructure within a single Terraform configuration directory. Each workspace has its own state file, allowing you to maintain separate sets of resources or configurations within the same Terraform configuration.
+
+Workspaces are useful for scenarios where you need to maintain multiple versions or instances of the same infrastructure, such as different environments (e.g., development, staging, production) or feature branches. Instead of duplicating your Terraform configurations for each environment, you can use workspaces to manage them within the same directory.
+
+Environments on the other hand typically refer to separate configurations or sets of infrastructure resources that correspond to different stages of your development or deployment workflow. These environments are managed using separate directories or repositories, each containing its own Terraform configuration files, state files, and backend configurations.
+
+Environments are typically managed using separate directories or repositories, each containing its own Terraform configuration files, state files, and backend configurations. This is ideal when the resources being created for `Development` are different from the resources that would be created for `Production`.
+
+Let's start by using Workspaces
+By default, every project in terraform has a default workspace. We can confirm this by running `terraform workspace list`
+
+![alt text](Images/Img_12.png)
+
+To create a workspace, the command is `terraform workspace new [name-of-workspace]`. Now, let's create two (2) workspaces, **Development** and **Production**.
+
+To demonstrate this, we will configure E2 Instances in Production workspace to be `t2.small`, while that of Development will be `t2.micro`. We will also dynamically specify the tag for each environment. To implement this, let's edit the `locals.tf` file with the following.
+
+For the tags,
+
+> ```bash
+> tags = {
+>    "Environment"     = "${terraform.workspace}" // Set this to the current workspace
+>    "Owner-Email"     = "devopsadmin@darey.io"
+>    "Managed-By"      = "Terraform"
+>    "Billing-Account" = "1234567890"
+>  }
+> ```
+
+For the instance,
+
+> ```bash
+> instance_type_value = terraform.workspace == "Production" ? "medium" : "small"
+> ```
+
+Here, we introduced a condition to use either a t2.medium or t2.mirco as the instance size depending on the environment. This instance_type_value was defined in the ASG Module
+![alt text](Images/Img_13.png)
+
+The module's `var.tf` file
+![alt text](Images/img_14.png)
+
+and then used in the `main.tf` file here:
+![alt text](Images/Img_15.png)
+
+Now, let't test this by first initializing and validating the project. The switch to the `Development WorkSpace`.
+![alt text](Images/Img_16.png)
+
+Now, plan and then apply the changes.
+![alt text](Images/Img_18.png)
+
+Log into the AWS Console and confirm the instance type in the `Development` Workspace is t2.micro and the tags has Development set for the environment.
+![alt text](Images/Img_17.png)
+
+Also check the S3 Bucket and confirm we have different folders to store different workspace/environment
+![alt text](Images/Img_20.png)
+
+Now, let's switch to the `Production` Workspace and apply the changes
+
+![alt text](Images/Img_19.png)
+
+![alt text](Images/Img_21.png)
+
+Note. In this sample, we used the same region to host the resources, so using the workspace as a prefix in naming the resources will be necessary to avoid conflict. We already have a tag_prefix defined, so we can set the value to `  tag_prefix = "${terraform.workspace}_DIO"`
+
+### Using Directory Structure
+
+For directory Structure, we won't have to make changes to dynamically select variables. Instead, we will be creating multiple files for each environment. To implement this, in the root directory, create two (2) folders Dev and Prod. Make a copy and move the files `.tf` files outside the modules into each of the directories. At the end, your directory should have this structure:
+
+![alt text](Images/Img_22.png)
+
+Basically, we have the root directory, and within the root directory, we have the Modules, Dev and then Prod directory. The Dev and Prod directory each has the required files to run the application. This can be likened to two different projects using a shared resource (the module).
+
+Now to run the code, navigate to the Dev or Prod directory from your terminal and then run terraform init and then plan or apply
+![alt text](Images/Img_23.png)
+
+And that's how to use different environment with Terraform. This methods has their advantages and disadvantages, the choice of method to adapt depends on several factors.
