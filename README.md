@@ -1,4 +1,4 @@
-# DIO-Projects
+# DevOps-Projects
 
 1. Project 1 - [Linux](https://github.com/iamYole/DIO-Projects/blob/main/Project%201%20-%20Linux%20Commands/README.md)  
    Using linux commands for normal day to day operations as well as commands for file manipulation and basic system administration.
@@ -44,5 +44,5 @@
     In this project, we will be provisioning more resources in AWS using Terraform. Specifically, we will be provisioning the network infrastructures that were created in the previous project.
 22. Project 22 - [Infrastructure as a Code using Terraform Part 3](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2022%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%203/README.md)  
     This project will be an enhance of the previous part. Here, we will be configuring remote state management of the resources as well as introducing Modules to organize and make the code reuseable.
-23. Project 23 - [Infrastructure as a Code using Terraform Part 4]()  
-    This project would be an introduction to Terraform Cloud. Here, we will be migrating all our `.tf` files to the terraform cloud and explore its benefits.
+23. Project 23 - [Infrastructure as a Code using Terraform and Part 4](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2023%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%204/README.md)  
+    This project would be an introduction to Packer and Terraform Cloud. Here, we will be creating immutable images with Packer and migrating all our `.tf` files to the terraform cloud.
