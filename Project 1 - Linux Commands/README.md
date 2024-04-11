@@ -3,20 +3,20 @@
 ### Part 1 - File Manipulation
 
 - `sudo`  
-   This command is used by non root users to run tasks/commands that reqiure root or administrative privelidge.
+   This command is used by non root users to run tasks/commands that require root or administrative privilege.
   ![Alt text](Images/img_01.png)
 - `pwd`  
    This command is used to print the current or present working directory .
   ![Alt text](Images/img_02.png)
 - `cd`  
-   This command is used to change the current directory. It is usully used with the name of the directory that needs to be changed to.
+   This command is used to change the current directory. It is usually used with the name of the directory that needs to be changed to.
   ![Alt text](Images/img_03.png)
 - `ls`  
   The list command is used to list the content of a directory. This command can be used with several flags for example:
 
   - ls -a : lists hidden files in a directory.
   - ls -lh : lists the files in a directory and their size.
-  - ls - R list the files in a directory as well as the files in all sub directorys.
+  - ls - R list the files in a directory as well as the files in all sub directories.
 
   ![Alt text](Images/img_04.png)
 

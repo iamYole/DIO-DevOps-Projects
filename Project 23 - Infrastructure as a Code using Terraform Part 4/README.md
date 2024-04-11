@@ -2,6 +2,8 @@
 
 So far, we've been creating our `.tf` files in our local computer where we had Terraform and AWS Cli installed. In this project, we will be creating immutable Images with Packer and migrating our existing project to TerraForm Cloud.
 
+## Creating Immutable Infrastructures with Packer
+
 **Packer** is an open-source tool developed by HashiCorp that automates the process of creating identical machine images or artifacts for multiple platforms from a single source configuration. It enables developers and operators to build machine images for various platforms, including virtual machines (VMs), containers, and cloud instances, in a repeatable and consistent manner.
 
 In previous projects, we launched new EC2 Instances using a userdata script. Meaning the script has to run for every new instance that's be provision. This time around, we will be building images from the script so as we can launch as many instance we like with the exact same softwares installed.
@@ -125,7 +127,22 @@ The image above shows we've successfully built our `bastion-AMI`. Build the othe
 
 ![alt text](Images/Img_05.png)
 
-We've successfully created the AMIs needed for our servers.
+We've successfully created the AMIs needed for our servers. Next we need to created variables for the AMIs in the terraform project, and update the code to use these variables.
+
+In the root module, create an image variable and then add the values to the terraform.tfvars file:
+
+> ```bash
+>
+>  Image = {
+>    "bastion-AMI"   = "ami-0695d4327df64276f"
+>    "tooling-AMI"   = "ami-0b8a63ab088648f25"
+>    "nginx-AMI"     = "ami-0468511d9b22bcf44"
+>    "wordpress-AMI" = "ami-06c65b48303adb1c1"
+>  }
+>
+> ```
+
+Also update the respective files in the ASG modules.
 
 ## Migrating to Terraform Cloud
 
@@ -151,7 +168,21 @@ In creating workspaces, we also need to decide how we intend to integrate the pr
 - **API Workflow**: The API workflow in Terraform Cloud allows you to interact with Terraform Cloud programmatically using its RESTful API. This workflow enables automation, integration, and custom tooling to interact with Terraform Cloud, perform operations, and manage infrastructure configurations remotely
 - **Version Control Workflow**: The version control workflow in Terraform Cloud integrates Terraform configurations with a version control system (VCS) such as Git. This workflow enables teams to manage changes, track history, collaborate, and automate infrastructure deployments using Terraform Cloud. This is the most commonly used workflow, and that's what we will be using for this project.
 
-First, we need to ensure our project already exists in a GitHub repository. If not, you can fork the repository used for this project [here](https://github.com/iamYole/terraform-aws-IaC).
+First, we need to ensure our project already exists in a GitHub repository. Before that, we need to update the backend so the state won't be stored in AWS S3, but the Terraform Cloud. Update the backend.tf file with the code below:
+
+> ```bash
+> terraform {
+>  backend "remote" {
+>
+>    organization = "YoleTechSolutions"
+>       workspaces {
+>           name = "terraform-aws-IaC"
+>       }
+>    }
+> }
+> ```
+
+The rename the `terraform.tfvars` file to `terraform.auto.tfvars`. This will enable Terraform Cloud automatically read the values of the variables in the file. Alternatively, you can fork the repository used for this project [here](https://github.com/iamYole/terraform-aws-IaC). However, the certain variables such as the AMIs, the Organization name above, etc needs to be updated to reflect your own values.
 
 - Now, from the Terraform Cloud console, navigate to workspaces on the right menu and the click create workspace.
 - Select the Version Control Workflow, and following the prompts to connect the workspace to your gitHub repository.
@@ -159,6 +190,59 @@ First, we need to ensure our project already exists in a GitHub repository. If n
   ![alt text](Images/Img_02.png)
 
 - Select the repository for the project in question, next and then create.
-- Next, you would be asked to provide values to the Terraform variables seen in the `terraform.tfvars` file. We can skip this for now.
+- You would be asked to provide values for the variables next, However, since are have `auto.tfvars`, we can skip this step.
 
 There are two types of variables used in Terraform Cloud: Environment Variables and Terraform variables. Environment variables are used to store configuration settings and sensitive information outside of Terraform configuration files. For examples, security keys to connect our project to other applications like AWS, etc. Terraform variables on the other hand are used to parameterize and customize Terraform configurations as we've seen in the previous project.
+
+Just as we provided our AWS credentials to Packer above, we need to do the same in Terraform Cloud. From the right pane, click on variables and the add variables. Provide the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. Ensure these are created as Environment Variables and the the sensitive option is selected.
+
+![alt text](Images/Img_06.png)
+
+At this point, we can now start planing and creating AWS resources. To this, navigate to the left pane and click on rin, then start plan.
+
+![alt text](Images/Img_07.png)
+
+![alt text](Images/Img_08.png)
+
+If satisfied with the plan output, click on confirm and apply, and then give a comment on this apply. With Terraform Cloud, we get a nice UI and update on the changes being made unlike what we saw from the CLI.
+
+![alt text](Images/Img_09.png)
+
+From the above image, we can confirm our resources has been created.
+
+We can also go to the overview page to see the list of all the resources.
+
+![alt text](Images/Img_12.png)
+
+Log into AWS Console to confirm.
+
+![alt text](Images/Img_10.png)
+
+Confirm the EC2 Instance were created with the customer AMIs from Packer.
+
+However, we still have a problem with our applications. If can check the Load Balancers and Target groups, we will see the health checks as unhealthy, meaning the the servers are not reachable.
+![alt text](Images/Img_11.png)
+
+![alt text](Images/Img_13.png)
+
+This is mainly because we have't fully configured the applications on this servers, nginx and the web application. This would be done using Ansible. However, to avoid complications, let's deregister the targets from the target groups and listenings and remove the listeners from the load balancers.
+
+One major objective of Infrastructure as a Code (IaC) is state management of our resources. Hence, we won't be performing the above steps manually, but via code. Back to our Terraform repository, from the Networking Module, locate the `ALB.tf` file and comment out the listeners. Next, from the ASG module, locate the `aws_autoscaling_attachment` and comment them out to remove the them as targets for the target groups. Save the changes and commit to GitHub.
+
+Back the Terraform Cloud, the commit should automatically trigger a new plan with the changes we've made to the IaC.
+
+![alt text](Images/Img_14.png)
+
+From the code above `De registering Listeners` was the comment for the commit and we can see the run was triggered from github.
+
+![alt text](Images/Img_15.png)
+
+Inspect the changes being made, and then apply.
+
+![alt text](Images/Img_16.png)
+
+![alt text](Images/Img_17.png)
+
+We can now see the Load Balancers have no listeners, and the target groups have no targets. Now, let's configure the resources using Ansible.
+
+## Configuring the Resources from Ansible.
