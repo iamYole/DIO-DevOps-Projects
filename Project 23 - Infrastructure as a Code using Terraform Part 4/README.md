@@ -20,14 +20,6 @@ With that done, we can now start building our `pkr.hcl` files. In VS Code, add a
 
 - **bastion.pkr.hcl**
   > ```bash
-  > packer {
-  > required_plugins {
-  >  amazon = {
-  >    version = ">= 1.2.8"
-  >    source  = "github.com/hashicorp/amazon"
-  >  }
-  > }
-  > }
   >
   > locals {
   >    timestamp = regex_replace(timestamp(), "[- TZ:]", "")
@@ -40,7 +32,7 @@ With that done, we can now start building our `pkr.hcl` files. In VS Code, add a
   >
   >    source_ami_filter {
   >      filters = {
-  >        name                = "RHEL-9.3.0_HVM-20240117-x86_64-49-Hourly2-GP3"
+  >        name                = "RHEL-8.6.0_HVM-20240117-x86_64-2-Hourly2-GP3"
   >        root-device-type    = "ebs"
   >        virtualization-type = "hvm"
   >      }
@@ -50,7 +42,7 @@ With that done, we can now start building our `pkr.hcl` files. In VS Code, add a
   >    ssh_username = "ec2-user"
   >    tag {
   >      key   = "Name"
-  >      value = "bastion-key"
+  >      value = "bastion-AMI"
   >    }
   > }
   >
@@ -63,17 +55,9 @@ With that done, we can now start building our `pkr.hcl` files. In VS Code, add a
   > }
   > ```
 - **nginx.pkr.hcl**  
-  Sane with the script above. Just change the name to "nginx-AMI"
+  Same with the script above. Just change the name to "nginx-AMI"
 - **tooling.pkr.hcl**
   > ```bash
-  > packer {
-  > required_plugins {
-  >  amazon = {
-  >    version = ">= 1.2.8"
-  >    source  = "github.com/hashicorp/amazon"
-  >  }
-  > }
-  > }
   >
   > locals {
   >  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
@@ -86,17 +70,17 @@ With that done, we can now start building our `pkr.hcl` files. In VS Code, add a
   >
   >  source_ami_filter {
   >    filters = {
-  >      name                = "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20240301"
+  >      name                = "RHEL-8.6.0_HVM-20240117-x86_64-2-Hourly2-GP3"
   >      root-device-type    = "ebs"
   >      virtualization-type = "hvm"
   >    }
   >    most_recent = true
-  >    owners      = ["099720109477"]
+  >    owners      = ["309956199498"]
   >  }
-  >  ssh_username = "ubuntu"
+  >  ssh_username = "ec2-user"
   >  tag {
   >    key   = "Name"
-  >    value = "tooling-key"
+  >    value = "tooling-AMI"
   >  }
   > }
   >
@@ -246,3 +230,68 @@ Inspect the changes being made, and then apply.
 We can now see the Load Balancers have no listeners, and the target groups have no targets. Now, let's configure the resources using Ansible.
 
 ## Configuring the Resources from Ansible.
+
+We've now created/ provisioned the servers. We need to configure them accordingly. In this next step, we will be using Ansible to configure the resources remotely. Remember, we configured our web servers in the private subnet with no direct access from the internet expect through the Bastion Host. Hence, we will ssh into the Bastion Host, configure our Ansible Playbooks in the Bastion Host and then implement the changes. Let's begin.
+
+- SSH into the Bastion Host and then confirm the ansible github [repository](https://github.com/iamYole/terraform-aws-ansible-IaC.git) has already been cloned with the AMI. Run the `git pull` command to update the repository with any changes that might have been made.
+  ![alt text](Images/Img_18.png)
+
+- Next, we need to configure AWS CLI on the bastion host to enable ansible connect the AWS Resources and carry out the necessary configurations. Run `aws configure` and the provide your AWS Access Key ID and AWS Secret Access Key. Choose the default region which should be the same region we created the resources, and the enter JSON for the default output.
+- Next, we need to install some Python libraries that are required for ansible to dynamically obtain the ip address of the resources.
+
+  > `sudo dnf install python3-devel`
+
+  > `curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py`
+
+  > `sudo python3.11 get-pip.py`
+
+  > `pip install botocore boto3`
+
+  After installing the above libraries, run the command below to dynamically obtain the list of ip address from our host
+
+  > `ansible-inventory -i Inventory/aws_ec2.yml --graph`
+
+  ![alt text](Images/Img_19.png)
+
+- Next, we change the Ansible configuration file to the custome config file that came with the git repository. This can be done by exporting the ANSIBLE_CONFIG variable to the path of the customer config file. We also need to ensure the `roles_path` is pointing the the path where we defined the roles.
+
+![alt text](Images/Img_20.png)
+
+Ansible can now dynamically obtain the IP Address of the servers. However, we still need to manually provide the endpoint point for resources like RDS, and mount point for the EFS servers. Let's log into the AWS Console to get these and then update the ansible scripts.
+
+- Let's start by updating the ansible scripts with the DNS names
+
+  - Obtain the DNS name for the internal load balancer and update the nginx role:
+    ![alt text](Images/Img_21.png)
+
+    ![alt text](Images/Img_22.png)
+
+- Next, we update the RDS endpoint for the tooling and wordpress roles:
+  ![alt text](Images/Img_23.png)
+
+  ![alt text](Images/Img_24.png)
+
+  While we are here, let's also confirm the dbname and password is also correct
+
+- Repeat the set above for the wordpress
+- Next, we update the mount points for the EFS Servers. Navigate to the EFS service from the AWS console, click on the files system and then Access Point.
+
+  ![alt text](Images/Img_25.png)
+
+- Starting the the Tooling Access Point, Click on tooling access point ID. The one where the path shows `/tooling`, and then click on Attach in the page that comes up.
+
+  ![alt text](Images/Img_26.png)
+
+  Update the `tooling/tasks/main.yml` file
+
+  ![alt text](Images/Img_27.png)
+
+- Repeat the steps above for Wordpress. Be careful not to mix access points for the Tooling and Wordpress servers up as this could cause a lot off issues.
+- Next, we need to copy the private key into the bastion host so Ansible can connect to the EC2 Instances with the key. This can be done either by using Secure Copy (SCP) or creating a file in the Bastion host and then copy and paste the key into the new file. I'll be going with the second option.
+
+  > ` touch ~/.ssh/ytech-key.pem`
+  > Copy and paste the key into the file using vim.
+
+After making the above changes to the ansible scripts, we can run the Ansible Playbook using the command below from within the ansible git repository:
+
+> `ansible-playbook -i Inventory/aws_ec2.yml Playbook/site.yml --private-key=~/.ssh/ytech-key.pem`
