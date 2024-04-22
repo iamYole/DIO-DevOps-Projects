@@ -321,3 +321,7 @@ Tooling Target Group
 
 WordPress Target Group
 ![alt text](Images/Img_35.png)
+
+Now let log into the wordpress server to confirm its working correctly.
+
+![alt text](Images/Img_36.png)
