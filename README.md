@@ -40,7 +40,7 @@
     THis project would be a basic introduction to containers(Docker). We will also see Docker in action by deploy our tooling application using docker.
 20. Project 20 - [Building a Scalable and Secure IT Infrastructure on AWS for a Company](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2020%20-%20Building%20a%20Scalable%20and%20Secure%20IT%20Infrastructure%20on%20AWS/README.md)  
     In this project, we will be designing the IT infrastructure for a fictitious company using AWS from scratch. Topics that would be covered includes AWS Organization, AWS Accounts and IAM, Virtual Private Cloud (VPC) Configuration and Networking etc.
-21. Project 21 - [Infrastructure as a Code (IaC) using Terraform in AWS Part 2](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2021%20-%20Infrastruct%20as%20a%20Code%20using%20Terraform%20Part%202/README.md)  
+21. Project 21 - [Infrastructure as a Code (IaC) using Terraform in AWS Part 2](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2021%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%202/README.md)  
     In this project, we will be provisioning more resources in AWS using Terraform. Specifically, we will be provisioning the network infrastructures that were created in the previous project.
 22. Project 22 - [Infrastructure as a Code using Terraform Part 3](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2022%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%203/README.md)  
     This project will be an enhance of the previous part. Here, we will be configuring remote state management of the resources as well as introducing Modules to organize and make the code reuseable.
