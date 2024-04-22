@@ -1484,4 +1484,4 @@ We can also run `terraform destroy -target=[resource.name]` to delete a resource
 
 Earlier, we ran `terraform plan -out=tfplan.out` to save the configuration file.
 
-##You can run `terraform destroy` to delete all the items created in this project or continue to Part 3 [here](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2022%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%203/README.md).
+## You can run `terraform destroy` to delete all the items created in this project or continue to Part 3 [here](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2022%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%203/README.md).

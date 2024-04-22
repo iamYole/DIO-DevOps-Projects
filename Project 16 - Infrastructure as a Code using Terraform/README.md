@@ -355,4 +355,4 @@ And there you have it.
 
 ![Alt text](Images/Img_17.png)
 
-##You can run `terraform destroy` to delete all the items created in this project or continue to Part 2 [here](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2021%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%202/README.md).
+## You can run `terraform destroy` to delete all the items created in this project or continue to Part 2 [here](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2021%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%202/README.md).
