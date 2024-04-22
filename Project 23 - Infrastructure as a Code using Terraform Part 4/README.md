@@ -1,5 +1,7 @@
 # Infrastructure as a Code (IaC) using Packer and Terraform Cloud in AWS Part 4
 
+![alt text](Images/Img_01a.png)
+
 So far, we've been creating our `.tf` files in our local computer where we had Terraform and AWS Cli installed. In this project, we will be creating immutable Images with Packer and migrating our existing project to TerraForm Cloud.
 
 ## Creating Immutable Infrastructures with Packer
@@ -253,7 +255,7 @@ We've now created/ provisioned the servers. We need to configure them accordingl
 
   ![alt text](Images/Img_19.png)
 
-- Next, we change the Ansible configuration file to the custome config file that came with the git repository. This can be done by exporting the ANSIBLE_CONFIG variable to the path of the customer config file. We also need to ensure the `roles_path` is pointing the the path where we defined the roles.
+- Next, we change the Ansible configuration file to the custom config file that came with the git repository. This can be done by exporting the ANSIBLE_CONFIG variable to the path of the customer config file. We also need to ensure the `roles_path` is pointing the the path where we defined the roles.
 
 ![alt text](Images/Img_20.png)
 
@@ -265,6 +267,12 @@ Ansible can now dynamically obtain the IP Address of the servers. However, we st
     ![alt text](Images/Img_21.png)
 
     ![alt text](Images/Img_22.png)
+
+- Still on the nginx.conf.j2 file, let's update the certificate and certificate key with the files created while creating the Packer Image for nginx;
+
+  ![alt text](Images/Img_28.png)
+
+  ![alt text](Images/Img_29.png)
 
 - Next, we update the RDS endpoint for the tooling and wordpress roles:
   ![alt text](Images/Img_23.png)
@@ -295,3 +303,21 @@ Ansible can now dynamically obtain the IP Address of the servers. However, we st
 After making the above changes to the ansible scripts, we can run the Ansible Playbook using the command below from within the ansible git repository:
 
 > `ansible-playbook -i Inventory/aws_ec2.yml Playbook/site.yml --private-key=~/.ssh/ytech-key.pem`
+
+![alt text](Images/Img_30.png)
+![alt text](Images/Img_31.png)
+
+We've now configured the servers from our Ansible Playbook. Let's uncomment the `autoscaling attachments` and re register the listeners from the Terraform Scripts then apply the changes to recreate the resources.
+
+![alt text](Images/Img_32.png)
+
+Next, log back to the AWS Console and confirm the target groups are now in a healthy state.
+
+Nginx Target Group  
+![alt text](Images/Img_33.png)
+
+Tooling Target Group
+![alt text](Images/Img_34.png)
+
+WordPress Target Group
+![alt text](Images/Img_35.png)
