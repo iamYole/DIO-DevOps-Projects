@@ -5,7 +5,7 @@
 2. Project 2 - [Basic Git Operations](https://github.com/iamYole/DIO-Projects/blob/main/Project%202%20-%20Basic%20Git%20Operations/README.md)  
    This project is a collection of beginner-friendly tasks for an introduction to the world of version control.
 3. Project 3 - [Deploy a simple web application using the LAMP web STACK ](<https://github.com/iamYole/DIO-Projects/blob/main/Project%203%20-%20LAMP(Linux%2C%20Apache%2C%20MySql%2C%20PhP)%20Stack/README.md>)  
-   In this project, we will be using the LAMP (Linux, Apache, MySql and PhP) web stack to deploy a simple web application. The project provides details on how to configure, manage and secure the technologies(Linux, Apapche, MySql, PhP).
+   In this project, we will be using the LAMP (Linux, Apache, MySql and PhP) web stack to deploy a simple web application. The project provides details on how to configure, manage and secure the technologies(Linux, Apache, MySql, PhP).
 4. Project 4 - [Deploy a simple web application using the LEMP web STACK](<https://github.com/iamYole/DIO-Projects/blob/main/Project%204%20-%20LEMP%20(Linux%2C%20Nginx%2C%20MySql%2C%20PhP)%20Stack/README.md>)  
    In this project, we will be using the LEMP (Linux, Nginx, MySql and PhP) web stack to deploy a simple web application that reads data from a database. The project provides details on how to configure, manage and secure the technologies(Linux, Nginx, MySql, PhP). It also provides a basic introduction to **C R ~~U~~ ~~D~~ (Create Read ~~Update~~ ~~Delete~~)** Operations in a database.
 5. Project 5 - [Task Automation with Bash Scripting](https://github.com/iamYole/DIO-Projects/blob/main/Project%205%20-%20Task%20Automation%20with%20Bash%20Scripts/README.md)  
@@ -35,7 +35,7 @@
 17. Project 17 - [Implementing CICD Pipeline for Terraform using Jenkins](https://github.com/iamYole/DIO-Projects/blob/main/Project%2017%20-%20Implementing%20CICD%20Pipeline%20for%20Terraform%20using%20Jenkins/README.md)  
     Setting up a CI/CD (Continuous Integration/Continuous Deployment) pipeline for Terraform using Jenkins involves a series of steps. In this project, we will set up a Jenkins from a docker image and then and also install Terraform CLI to implement the CICD Pipeline.
 18. Project 18 - [End to End Continuous Integration (CI) project using JENKINS | ANSIBLE | ARTIFACTORY | SONARQUBE | PHP](https://github.com/iamYole/DIO-Projects/tree/main/Project%2018%20-%20End%20to%20End%20Continous%20Intergration%20Project#readme)  
-    In this project, we will be taking a deeper look at **Continous Intergration** in practice. Here, will use several CI softwares like Jenkins, Ansible, SonarQube, etc to drive this implementation.
+    In this project, we will be taking a deeper look at **Continuous Integration** in practice. Here, will use several CI softwares like Jenkins, Ansible, SonarQube, etc to drive this implementation.
 19. Project 19 - [Containerization with Docker](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2019%20-%20Containerization/README.md)  
     THis project would be a basic introduction to containers(Docker). We will also see Docker in action by deploy our tooling application using docker.
 20. Project 20 - [Building a Scalable and Secure IT Infrastructure on AWS for a Company](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2020%20-%20Building%20a%20Scalable%20and%20Secure%20IT%20Infrastructure%20on%20AWS/README.md)  
@@ -46,3 +46,5 @@
     This project will be an enhance of the previous part. Here, we will be configuring remote state management of the resources as well as introducing Modules to organize and make the code reuseable.
 23. Project 23 - [Infrastructure as a Code using Terraform and Part 4](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2023%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%204/README.md)  
     This project would be an introduction to Packer and Terraform Cloud. Here, we will be creating immutable images with Packer and migrating all our `.tf` files to the terraform cloud.
+24. Project 24 - [Container Orchestration with Kubernetes Part 1]()
+    We've already learnt about Containers and how to containerize applications.In this project, we will be introduced to the world of container orchestration Kubernetes.
