@@ -46,5 +46,5 @@
     This project will be an enhance of the previous part. Here, we will be configuring remote state management of the resources as well as introducing Modules to organize and make the code reuseable.
 23. Project 23 - [Infrastructure as a Code using Terraform and Part 4](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2023%20-%20Infrastructure%20as%20a%20Code%20using%20Terraform%20Part%204/README.md)  
     This project would be an introduction to Packer and Terraform Cloud. Here, we will be creating immutable images with Packer and migrating all our `.tf` files to the terraform cloud.
-24. Project 24 - [Container Orchestration with Kubernetes Part 1]()
+24. Project 24 - [Container Orchestration with Kubernetes Part 1](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2024%20-%20Container%20Orchestration%20with%20Kuburnetes%20Part%201/README.md)  
     We've already learnt about Containers and how to containerize applications.In this project, we will be introduced to the world of container orchestration Kubernetes.
