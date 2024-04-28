@@ -424,3 +424,365 @@ AWS automatically creates and associates a DHCP option set for your VPC upon cre
   So far, we've setup the lab environment by provisioning an EC2 Instance. We then installed AWS CLI to provision the servers that the k8s cluster would run on as as well installed cfssl and cfssljson utilities to configure the security settings for the cluster. For the infrastructure, the following has been created with aws cli: - VPC - Subnet - Internet Gateway - Routes and Route Tables associated with the subnet - Network Load balancer - Target groups - Security groups - Security Key - 6 EC2 Instances (3 for the control node and 3 for the worker nodes)
 
 Now let's start configuring the Kubernetes of the infrastructure.
+
+## Creating the Self-Signed Certificate and General TLS Certificate
+
+Referring back to the diagram on Kubernetes Architecture.
+![alt text](Images/Img_02.png)
+
+The components in the Master node all requires TLS Certificates to function. While for the worker node, the `kubelet` and `kube-proxy` also requires TLS Certificates.
+
+Using `cfssl`, let's provision a Private Key infrastructure (PKI) which will have a Certificate Authority (CA). The CA will generate certificates for all the individual components.
+
+### Self-Signed Root Certificate Authority (CA)
+
+- Create a directory and switch into it:
+  - `mkdir ca-authority && cd ca-authority`
+- Generate the CA configuration file, Root Certificate, and Private key:
+  > ```bash
+  > {
+  >
+  >   cat > ca-config.json <<EOF
+  >       {
+  >           "signing": {
+  >           "default": {
+  >               "expiry": "8760h"
+  >           },
+  >           "profiles": {
+  >               "kubernetes": {
+  >               "usages": ["signing", "key encipherment", "server auth", "client auth"],
+  >               "expiry": "8760h"
+  >               }
+  >           }
+  >       }
+  > }
+  > EOF
+  >
+  >   cat > ca-csr.json <<EOF
+  >       {
+  >           "CN": "Kubernetes",
+  >           "key": {
+  >               "algo": "rsa",
+  >               "size": 2048
+  >           },
+  >           "names": [
+  >           {
+  >               "C": "UK",
+  >               "L": "England",
+  >               "O": "Ytech",
+  >               "OU": "DEVOPS",
+  >               "ST": "London"
+  >           }]
+  >       }
+  > EOF
+  >
+  >   cfssl gencert -initca ca-csr.json | cfssljson -bare ca
+  >
+  > }
+  > ```
+
+The file defines the following
+
+- CN – Common name for the authority
+- algo – the algorithm used for the certificates
+- size – algorithm size in bits
+- C – Country
+- L – Locality (city)
+- ST – State or province
+- O – Organization
+- OU – Organizational Unit
+
+![alt text](Images/Img_19.png)
+
+- View the certificates creates
+
+  - Ensure you are in the **ca-authority** directory, and the run the command: `ls -l `
+
+  ![alt text](Images/Img_20.png)
+
+- The 3 important files here are:
+  - ca.pem – The Root Certificate
+  - ca-key.pem – The Private Key
+  - ca.csr – The Certificate Signing Request
+
+### Generating TLS Certificates For Client and Server
+
+We also need to create Client/Server certificates for all the components. It is \***\*MANDATORY\*\*** for all the network communications within the cluster are encrypted. The server in this instance are the master nodes running the api-server component. While the client is every other component that needs to communicate with the api-server.
+
+Now we have a certificate for the Root CA, we can then begin to request more certificates which the different Kubernetes components, i.e. clients and server, will use to have encrypted communication.
+
+### Let us begin with the Kubernetes API-Server Certificate and Private Key
+
+The certificate for the Api-server must have IP addresses, DNS names, and a Load Balancer address included. Otherwise, we may encounter lot of difficulties connecting to the api-server.
+
+- Generate the Certificate Signing Request (CSR), Private Key and the Certificate for the Kubernetes Master Nodes.
+  > ```bash
+  > {
+  >   cat > master-kubernetes-csr.json <<EOF
+  >       {
+  >           "CN": "kubernetes",
+  >               "hosts": [
+  >                   "127.0.0.1",
+  >                   "172.31.0.10",
+  >                   "172.31.0.11",
+  >                   "172.31.0.12",
+  >                   "ip-172-31-0-10",
+  >                   "ip-172-31-0-11",
+  >                   "ip-172-31-0-12",
+  >                   "ip-172-31-0-10.${AWS_REGION}.compute.internal",
+  >                   "ip-172-31-0-11.${AWS_REGION}.compute.internal",
+  >                   "ip-172-31-0-12.${AWS_REGION}.compute.internal",
+  >                   "${KUBERNETES_PUBLIC_ADDRESS}",
+  >                   "kubernetes",
+  >                   "kubernetes.default",
+  >                   "kubernetes.default.svc",
+  >                   "kubernetes.default.svc.cluster",
+  >                   "kubernetes.default.svc.cluster.local"],
+  >           "key": {
+  >                   "algo": "rsa",
+  >                   "size": 2048},
+  >           "names": [{
+  >                    "C": "UK",
+  >                    "L": "England",
+  >                    "O": "Ytech",
+  >                    "OU": "DEVOPS",
+  >                    "ST": "London"}]
+  >       }
+  > EOF
+  >
+  >   cfssl gencert \
+  >       -ca=ca.pem \
+  >       -ca-key=ca-key.pem \
+  >       -config=ca-config.json \
+  >       -profile=kubernetes \
+  >   master-kubernetes-csr.json | cfssljson -bare master-kubernetes
+  > }
+  > ```
+
+![alt text](Images/Img_21.png)
+
+### Kubernetes API-Server Certificate and Private Key
+
+> ```bash
+> {
+>   cat > kube-scheduler-csr.json <<EOF
+>       {
+>           "CN": "system:kube-scheduler",
+>           "key": {
+>               "algo": "rsa",
+>               "size": 2048
+>               },
+>           "names": [
+>               {
+>                   "C": "UK",
+>                   "L": "England",
+>                   "O": "system:kube-scheduler",
+>                   "OU": "DEVOPS",
+>                   "ST": "London"
+>               }]
+>       }
+> EOF
+>
+>   cfssl gencert \
+>       -ca=ca.pem \
+>       -ca-key=ca-key.pem \
+>       -config=ca-config.json \
+>       -profile=kubernetes \
+>   kube-scheduler-csr.json | cfssljson -bare kube-scheduler
+>
+> }
+> ```
+
+![alt text](Images/Img_22.png)
+
+### kube-proxy Client Certificate and Private Key
+
+> ```bash
+> {
+>
+>   cat > kube-proxy-csr.json <<EOF
+>       {
+>           "CN": "system:kube-proxy",
+>           "key": {
+>               "algo": "rsa",
+>               "size": 2048
+>               },
+>           "names": [
+>               {
+>                   "C": "UK",
+>                   "L": "England",
+>                   "O": "system:node-proxier",
+>                   "OU": "DEVOPS",
+>                   "ST": "London"
+>               }]
+>       }
+> EOF
+>
+>   cfssl gencert \
+>       -ca=ca.pem \
+>       -ca-key=ca-key.pem \
+>       -config=ca-config.json \
+>       -profile=kubernetes \
+>   kube-proxy-csr.json | cfssljson -bare kube-proxy
+>
+> }
+> ```
+
+![alt text](Images/Img_23.png)
+
+### kube-controller-manager Client Certificate and Private Key
+
+> ```bash
+> {
+>   cat > kube-controller-manager-csr.json <<EOF
+>       {
+>           "CN": "system:kube-controller-manager",
+>           "key": {
+>               "algo": "rsa",
+>               "size": 2048
+>             },
+>           "names": [
+>               {
+>                   "C": "UK",
+>                   "L": "England",
+>                   "O": "system:kube-controller-manager",
+>                   "OU": "DEVOPS",
+>                   "ST": "London"
+>               }]
+>       }
+> EOF
+>
+>   cfssl gencert \
+>       -ca=ca.pem \
+>       -ca-key=ca-key.pem \
+>       -config=ca-config.json \
+>       -profile=kubernetes \
+>   kube-controller-manager-csr.json | cfssljson -bare kube-controller-manager
+>
+> }
+> ```
+
+![alt text](Images/Img_24.png)
+
+### kubelet Client Certificate and Private Key
+
+Similar to how we configured the api-server's certificate, Kubernetes requires that the hostname of each worker node is included in the client certificate. Kubernetes also uses a special-purpose authorization mode called Node Authorizer, that specifically authorizes API requests made by kubelet services.
+
+In order to be authorized by the Node Authorizer, kubelets must use a credential that identifies them as being in the system:nodes group, with a username of system:node:{nodeName}. Notice the "CN": "system:node:${instance_hostname}", in the below code.
+
+Therefore, the certificate to be created must comply to these requirements. In the below example, there are 3 worker nodes, hence we will use bash to loop through a list of the worker nodes’ hostnames, and based on each index, the respective Certificate Signing Request (CSR), private key and client certificates will be generated.
+
+> ```bash
+> for i in 0 1 2; do
+>  instance="${NAME}-worker-${i}"
+>  instance_hostname="ip-172-31-0-2${i}"
+>  cat > ${instance}-csr.json <<EOF
+>   {
+>       "CN": "system:node:${instance_hostname}",
+>       "key": {
+>           "algo": "rsa",
+>           "size": 2048
+>          },
+>       "names": [
+>           {
+>               "C": "UK",
+>               "L": "England",
+>               "O": "system:nodes",
+>               "OU": "DEVOPS",
+>               "ST": "London"
+>           }]
+>    }
+> EOF
+>
+>  external_ip=$(aws ec2 describe-instances \
+>    --filters "Name=tag:Name,Values=${instance}" \
+>    --output text --query 'Reservations[].Instances[].PublicIpAddress')
+>
+>  internal_ip=$(aws ec2 describe-instances \
+>    --filters "Name=tag:Name,Values=${instance}" \
+>    --output text --query 'Reservations[].Instances[].PrivateIpAddress')
+>
+>  cfssl gencert \
+>    -ca=ca.pem \
+>    -ca-key=ca-key.pem \
+>    -config=ca-config.json \
+>    -hostname=${instance_hostname},${external_ip},${internal_ip} \
+>    -profile=kubernetes \
+>    ${NAME}-worker-${i}-csr.json | cfssljson -bare ${NAME}-worker-${i}
+> done
+> ```
+
+![alt text](Images/Img_25.png)
+
+### kubernetes admin user's Client Certificate and Private Key
+
+> ```bash
+> {
+>   cat > admin-csr.json <<EOF
+>       {
+>           "CN": "admin",
+>           "key": {
+>               "algo": "rsa",
+>               "size": 2048
+>             },
+>           "names": [
+>               {
+>                   "C": "UK",
+>                   "L": "England",
+>                   "O": "system:masters",
+>                   "OU": "DEVOPS",
+>                   "ST": "London"
+>               }]
+>       }
+> EOF
+>
+>   cfssl gencert \
+>       -ca=ca.pem \
+>       -ca-key=ca-key.pem \
+>       -config=ca-config.json \
+>       -profile=kubernetes \
+>   admin-csr.json | cfssljson -bare admin
+> }
+> ```
+
+![alt text](Images/Img_26.png)
+
+### Token Controller Client Certificate and Private Key
+
+The last key pair that needs to be created is for the Token Controller. A Token Controller is the component responsible for managing service account tokens within the cluster. Service accounts are identities used by applications running within Kubernetes pods to authenticate with the Kubernetes API server and perform actions on the cluster. Read more about Service Accounts from the official documentation.
+
+> ```bash
+> {
+>
+>   cat > service-account-csr.json <<EOF
+>       {
+>           "CN": "service-accounts",
+>           "key": {
+>               "algo": "rsa",
+>               "size": 2048
+>             },
+>           "names": [
+>               {
+>                   "C": "UK",
+>                   "L": "England",
+>                   "O": "Kubernetes",
+>                   "OU": "DAREY.IO DEVOPS",
+>                   "ST": "London"
+>               }]
+>       }
+> EOF
+>
+>   cfssl gencert \
+>       -ca=ca.pem \
+>       -ca-key=ca-key.pem \
+>       -config=ca-config.json \
+>       -profile=kubernetes \
+>   service-account-csr.json | cfssljson -bare service-account
+> }
+> ```
+
+![alt text](Images/Img_27.png)
+
+List of Certificate Key Pairs created so far:
+
+![alt text](Images/Img_28.png)
