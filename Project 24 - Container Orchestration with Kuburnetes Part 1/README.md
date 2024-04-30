@@ -1,4 +1,4 @@
-# Container Orchestration with Kubernetes Part 1
+# Container Orchestration with Kubernetes Part 1 - Installing Kubernetes from Groud Up
 
 In previous projects, we learnt about containers, it's usefulness, and how to containerize applications. In this project, we will be introduce to Container Orchestration and Kubernetes.
 
@@ -1897,7 +1897,7 @@ Review your PKI setup again. Ensure that the certificates you generated have the
 
 Congratulations!
 
-we've created our first Kubernetes cluster From-Ground-Up!
+We've created our first Kubernetes cluster From-Ground-Up! In the [Part 2]() of this project, we will be looking at Deploying Applications to a Kubernetes Cluster.
 
 ### Reference
 
