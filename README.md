@@ -48,5 +48,5 @@
     This project would be an introduction to Packer and Terraform Cloud. Here, we will be creating immutable images with Packer and migrating all our `.tf` files to the terraform cloud.
 24. Project 24 - [Container Orchestration with Kubernetes Part 1](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2024%20-%20Container%20Orchestration%20with%20Kuburnetes%20Part%201/README.md)  
     We've already learnt about Containers and how to containerize applications.In this project, we will be introduced to the world of container orchestration Kubernetes. In the first part of this series, we will be looking at installing a kubernetes cluster from ground up
-25. Project 25 - [Container Orchestration with Kubernetes Part 2]()  
+25. Project 25 - [Container Orchestration with Kubernetes Part 2](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2025%20-%20Container%20Orchestration%20with%20Kuburnetes%20Part%202/README.md)  
     In the second part of this project, we will be looking at deploying applications to a kubernetes cluster.

@@ -1897,7 +1897,7 @@ Review your PKI setup again. Ensure that the certificates you generated have the
 
 Congratulations!
 
-We've created our first Kubernetes cluster From-Ground-Up! In the [Part 2]() of this project, we will be looking at Deploying Applications to a Kubernetes Cluster.
+We've created our first Kubernetes cluster From-Ground-Up! In the [Part 2](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2025%20-%20Container%20Orchestration%20with%20Kuburnetes%20Part%202/README.md) of this project, we will be looking at Deploying Applications to a Kubernetes Cluster.
 
 ### Reference
 
