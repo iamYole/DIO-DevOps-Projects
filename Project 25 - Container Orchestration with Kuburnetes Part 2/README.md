@@ -80,7 +80,7 @@ With all the above configurations done, we can start creating a EKS clusters. Le
 >       --name demo-cluster \
 >       --region us-east-2 \
 >       --nodegroup-name worker \
->       --node-type t2.micro \
+>       --node-type t3.small \
 >       --nodes 2
 > ```
 
@@ -96,7 +96,7 @@ A more standard approach will be to create a ClusterConfig file for the creation
 >
 > nodeGroups:
 >   - name: worker
->     instanceType: t2.micro
+>     instanceType: t3.small
 >     desiredCapacity: 2
 >     maxSize: 3
 >     minSize: 2
@@ -174,7 +174,7 @@ Now, let's deploy an NGINX container running inside a Pod.
 
   ![alt text](Images/Img_10.png)
 
-- We can also create a pod for the tooling application using the docker image created in the [PROJECT]().
+- We can also create a pod for the tooling application using the docker image created in the [Docker](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2019%20-%20Containerization/README.md).
 - Create a file called `tooling-pod.yaml` with the code below
 
   > ```yaml
@@ -232,7 +232,7 @@ Let's create a service in order to access the nginx application
 
   We can see service has been created with Public IP address and Port that can be routed over the internet. The `kubernetes` service is the default service for running the k8r cluster.
 
-The range of valid ports is 30000-32767
+      For NodePorts, the valid range of ports are between 30000 and 32767.
 
 - From the aws console, allow access to port `30080` from the security group
 - From the browser, key in the ip address and port `30080` to access the application
