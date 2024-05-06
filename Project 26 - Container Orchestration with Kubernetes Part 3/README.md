@@ -19,8 +19,69 @@ In Kubernetes, data persistence refers to the ability to store and retain data b
   - For stateful applications like databases, using a managed database service outside of Kubernetes (e.g., Amazon RDS, Google Cloud SQL) may be a viable option.
   - Kubernetes can interact with these external services through services like ExternalName or through direct connectivity.
 
-Let's see how we can use the AWS EBS to persist data in our application. In Kubernetes, EBS volumes can be dynamically provisioned using the AWS EBS CSI (Container Storage Interface) driver. This allows Kubernetes clusters to dynamically create EBS volumes and attach them to pods based on PersistentVolumeClaims (PVCs) defined by users. However, we will be manually assigning EBS volumes to Pod at creation in this project.
-Before we begin, let's note the following:
+Let's see how we can use the AWS EBS to persist data in our application. In Kubernetes, EBS volumes can be dynamically provisioned using the AWS EBS Container Storage Interface (CSI) driver. This allows Kubernetes clusters to dynamically create EBS volumes and attach them to pods based on PersistentVolumeClaims (PVCs) defined by users.
+
+## Installing the AWS EBS Container Storage Interface (CSI)
+
+For this to work, we need to ensure the cluster are running on nodes greater the `t2.micro`. That's because the CSI driver will require more pods running on the nodes. If there aren't enough space in the nodes, this won't function as expected. Depending on how many pods you intend to run, the minimum requirement should be a `t2.small`.
+
+Let's first check to see if the driver is installed by runing the command below:
+
+- `k get pods -n kube-system`
+
+  ![alt text](Images/Img_15.png)
+  `after the installation is complete, we will run the command again to confirm the CSI pods are running`.
+
+- **Enable IAM OIDC provider**  
+  A prerequisite for the EBS CSI driver to work is to have an existing AWS Identity and Access Management (IAM) OpenID Connect (OIDC) provider for your cluster. This IAM OIDC provider can be enabled with the following command:
+
+  > ```bash
+  > eksctl utils associate-iam-oidc-provider \
+  >    --region=us-east-2 \
+  >    --cluster=demo-cluster \
+  >    --approve
+  > ```
+
+  ![alt text](Images/Img_13.png)
+
+- **Create Amazon EBS CSI driver IAM role**  
+  Next, we create the IAM Role to enable `eksctl` to manage the volumes;
+
+  > ```bash
+  > eksctl create iamserviceaccount \
+  >     --region us-east-2 \
+  >     --name ebs-csi-controller-sa \
+  >     --namespace kube-system \
+  >     --cluster demo-cluster \
+  >     --attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy \
+  >     --approve \
+  >     --role-only \
+  >     --role-name AmazonEKS_EBS_CSI_DriverRole
+  > ```
+
+  ![alt text](Images/Img_14.png)
+
+- **Add the Amazon EBS CSI add-on**  
+  Now we can finally add the EBS CSI add-on. Therefor we also need the AWS Account id which we can obtain by running aws sts get-caller-identity --query Account --output text
+
+  > ```bash
+  > eksctl create addon \
+  >    --name aws-ebs-csi-driver \
+  >    --cluster demo-cluster \
+  > --service-account-role-arn arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):role/AmazonEKS_EBS_CSI_DriverRole --force
+  > ```
+
+  ![alt text](Images/Img_16.png)
+
+- Finally, let's confirm the EBS CSI has been installed and configured properly in the cluster by running the code below:
+
+  - `k get pods -n kube-system`
+
+    ![alt text](Images/Img_17.png)
+
+We can now see the ebs-csi-controller pods runinng the the `kube-system` namespace.
+
+## Deploying a Persistent Pod
 
 - The is a continuation of [Deploying Applications in Kubernetes](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2025%20-%20Container%20Orchestration%20with%20Kuburnetes%20Part%202/README.md), so we should have a running K8r cluster already to proceed.
 - For EBS to work in our K8r the nodes must be running on an EC2 Instance
@@ -61,7 +122,7 @@ For now, let's create a deployment file `nginx-deployment.yaml` and confirm the 
 
 - Check the logs of one of the running pods
 
-  - `k logs nginx-deployment-fc79b9898-6lv6k`
+  - `k logs nginx-deployment-fc79b9898-kckzj`
     > ```bash
     > /docker-entrypoint.sh: /docker-entrypoint.d/ is not empty, will attempt to perform configuration
     > /docker-entrypoint.sh: Looking for shell scripts in /docker-entrypoint.d/
@@ -72,14 +133,13 @@ For now, let's create a deployment file `nginx-deployment.yaml` and confirm the 
     > /docker-entrypoint.sh: Launching /docker-entrypoint.d/20-envsubst-on-templates.sh
     > /docker-entrypoint.sh: Launching /docker-entrypoint.d/30-tune-worker-processes.sh
     > /docker-entrypoint.sh: Configuration complete; ready for start up
-    > 2024/05/05 10:14:45 [notice] 1#1: using the "epoll" event method
-    > 2024/05/05 10:14:45 [notice] 1#1: nginx/1.25.5
-    > 2024/05/05 10:14:45 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14)
-    > 2024/05/05 10:14:45 [notice] 1#1: OS: Linux 5.10.214-202.855.amzn2.x86_64
-    > 2024/05/05 10:14:45 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
-    > 2024/05/05 10:14:45 [notice] 1#1: start worker processes
-    > 2024/05/05 10:14:45 [notice] 1#1: start worker process 30
-    > 2024/05/05 10:14:45 [notice] 1#1: start worker process 31
+    > 2024/05/06 21:09:02 [notice] 1#1: using the "epoll" event method
+    > 2024/05/06 21:09:02 [notice] 1#1: nginx/1.25.5
+    > 2024/05/06 21:09:02 [notice] 1#1: built by gcc 12.2.0 (Debian 12.2.0-14)
+    > 2024/05/06 21:09:02 [notice] 1#1: OS: Linux 5.10.214-202.855.amzn2.x86_64
+    > 2024/05/06 21:09:02 [notice] 1#1: getrlimit(RLIMIT_NOFILE): 1048576:1048576
+    > 2024/05/06 21:09:02 [notice] 1#1: start worker processes
+    > 2024/05/06 21:09:02 [notice] 1#1: start worker process 28
     > ```
 
 - To confirm the AZ a node is running, run the `describe` command on th node to get more details
@@ -88,7 +148,7 @@ For now, let's create a deployment file `nginx-deployment.yaml` and confirm the 
 
     ![alt text](Images/Img_02.png)
 
-  - `k describe node ip-192-168-35-220.us-east-2.compute.internal`
+  - `k describe node ip-192-168-47-199.us-east-2.compute.internal`
 
     ![alt text](Images/Img_03.png)
 
@@ -103,6 +163,8 @@ For now, let's create a deployment file `nginx-deployment.yaml` and confirm the 
   >       --query 'VolumeId' \
   >       --output text
   > ```
+
+It is important the volume has a tag called `KuberentesCluster` with a value of the name the name of the cluster.
 
 - Note the VolumeID
 
@@ -137,7 +199,7 @@ For now, let's create a deployment file `nginx-deployment.yaml` and confirm the 
   >       volumes: # Attaching the Volume
   >         - name: nginx-volume
   >           awsElasticBlockStore:
-  >             volumeID: "vol-09f4bef32a28cb203"
+  >             volumeID: "vol-09032b4bddc6469e0"
   >             fsType: ext4
   > ```
 
@@ -152,6 +214,16 @@ For now, let's create a deployment file `nginx-deployment.yaml` and confirm the 
     ![alt text](Images/Img_06.png)
 
     ![alt text](Images/Img_07.png)
+
+    If we run describe on the other pod, we should see an error saying it's not in the same AZ.
+
+- we can also confirm by running the cide belo:
+
+  > ```bash
+  > aws ec2 describe-volumes --volume-ids vol-09032b4bddc6469e0
+  > ```
+
+  ![alt text](Images/Img_18.png)
 
 At this point, even though the pod can be used for a stateful applications, the configuration is not yet complete. This is because, the volume is not yet mounted onto any specific filesystem inside the container. The directory /usr/share/nginx/html which holds the software/website code is still ephemeral, and if there is any kind of update to the index.html file, the new changes will only be there for as long as the pod is still running. If the pod dies after, all previously written data will be erased.
 
@@ -185,7 +257,7 @@ To complete the configuration, we will need to add another section to the deploy
 >       volumes:
 >         - name: nginx-volume
 >           awsElasticBlockStore:
->             volumeID: "vol-09f4bef32a28cb203"
+>             volumeID: "vol-09032b4bddc6469e0"
 >             fsType: ext4
 > ```
 
@@ -207,8 +279,6 @@ To complete the configuration, we will need to add another section to the deploy
   > ```
 
 - Access the application from a browser using the EC2 Instance Public IP and port `30000`
-
-  ![alt text](Images/Img_09.png)
 
 The page cannot be displayed. Thats simply because mounting a new filesystem to a directory with existing data erases the exiting data. Hence all the nginx web files have been lost. A more refined approach to address this challenge is to leverage Persistent Volumes and Persistent Volume Claims (PVCs) in Kubernetes.
 
@@ -365,14 +435,15 @@ Now lets check the dynamically created PV
 
 `kubectl get pv`
 
-> ```bash
-> NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                        STORAGECLASS   REASON   AGE
-> pvc-cc79de3f-0029-4605-8686-5a127d90e43d   2Gi        RWO            Delete           Bound    default/nginx-volume-claim   gp2                     4s
-> ```
+![alt text](Images/Img_19.png)
 
-You can copy the PV Name and search in the AWS console. You will notice that the volum has been dynamically created there.
+You can copy the PV Name and search in the AWS console. You will notice that the volume has been dynamically created there. This volume was automatically created, and its different from the one created earlier.
 
-![alt text](<Images/lonely dp.jpeg>)
+![alt text](Images/Img_20.png)
+
+We can run a describe command on one of the pods and see the PVC was attached.
+
+![alt text](Images/Img_21.png)
 
 ### Approach 2 - Creating a ConfigMap
 
@@ -383,9 +454,8 @@ So rather than have 2 manifest files, you will define everything within the depl
 
 Delete the deployment, the PersistentVolumeClaim and the PersistentVolume:
 
-- `k delete deployment`
-- `k delete pvc`
-- `k delete pv`
+- `k delete deployment nginx-deployment`
+- `k delete pvc nginx-volume-claim`
 
 Using configMaps for persistence is not something you would consider for data storage. Rather it is a way to manage configuration files and ensure they are not lost as a result of Pod replacement.
 
@@ -393,10 +463,35 @@ To demonstrate this, we will use the HTML file that came with Nginx. This file c
 
 Lets go through the below process so that you can see an example of a configMap use case.
 
-- Remove the volumeMounts and PVC sections of the manifest and use kubectl to apply the configuration
+- Update the `nginx-deployment.yaml` file with the code below and then apply it
+  > ```yaml
+  > apiVersion: apps/v1
+  > kind: Deployment
+  > metadata:
+  >   name: nginx-deployment
+  >   labels:
+  >     tier: frontend
+  > spec:
+  >   replicas: 1
+  >   selector:
+  >     matchLabels:
+  >       tier: frontend
+  >   template:
+  >     metadata:
+  >       labels:
+  >         tier: frontend
+  >     spec:
+  >       containers:
+  >         - name: nginx
+  >           image: nginx:latest
+  >           ports:
+  >             - containerPort: 80
+  > ```
 - Exec into the running container and keep a copy of the index.html file somewhere.
 
-  > `kubectl exec -it nginx-deployment-6fdcffd8fc-6p9w8 -- bash`
+  ![alt text](Images/Img_22.png)
+
+  > `kubectl exec -it nginx-deployment-fc79b9898-q96v7 -- bash`
 
   > `cat /usr/share/nginx/html/index.html`
 
@@ -451,7 +546,7 @@ According to the official documentation of configMaps, A ConfigMap is an API obj
   >   labels:
   >     tier: frontend
   > spec:
-  >   replicas: 2
+  >   replicas: 1
   >   selector:
   >     matchLabels:
   >       tier: frontend
@@ -480,7 +575,7 @@ According to the official documentation of configMaps, A ConfigMap is an API obj
 
 - Now the `index.html` file is no longer ephemeral because it is using a configMap that has been mounted onto the filesystem. This is now evident when you exec into the pod and list the /usr/share/nginx/html directory
 
-  ![alt text](<Images/lonely dp.jpeg>)
+  ![alt text](Images/Img_23.png)
 
 You can now see that the index.html is now a soft link to ..data/index.html
 
@@ -494,7 +589,7 @@ List the available configmaps.
 
 > `k get configmap`
 
-![alt text](<Images/lonely dp.jpeg>)
+![alt text](Images/Img_24.png)
 
 We are interested in the website-index-file configmap
 
@@ -508,9 +603,11 @@ This command will open a text editor. You can now make the desired changes to th
 > <body bgcolor="blue"></body>
 > ```
 
+![alt text](Images/Img_25.png)
+
 Save the changes and Without restarting the pod, your site should be loaded automatically.
 
-![alt text](<Images/lonely dp.jpeg>)
+![alt text](Images/Img_26.png)
 
 Restart the deployment using the command
 
@@ -518,7 +615,8 @@ Restart the deployment using the command
 
 This will terminate the running pod and launch up a new one.
 
-![alt text](<Images/lonely dp.jpeg>)
+![alt text](Images/Img_27.png)
+Notice a new pod started and the old pod deleted
 
 The content in the browser remains unchanged despite restarting the deployment, which resulted in the termination of the previous pod and the creation of a new one.
 
