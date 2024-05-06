@@ -553,9 +553,7 @@ To make the data persist in case of a Pod’s failure, you will need to configur
 Persistent Volume or pv – is a piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using Storage Classes.
 Persistent Volume Claim or pvc. Persistent Volume Claim is simply a request for storage, hence the "claim" in its name.
 
-In [Part 3]() of this Kubernetes project, we will be working on the following
+In [Part 3](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2026%20-%20Container%20Orchestration%20with%20Kubernetes%20Part%203/README.md) of this Kubernetes project, we will be working on the following
 
-- Using Terraform to create a Kubernetes EKS cluster in AWS, and use some powerful features such as PV, PVCs, ConfigMaps.
-- Package Kubernetes manifests using Helm
-  Dynamic provisioning of volumes to make Pods stateful, using Kubernetes Statefulset
-- Deploying applications into Kubernetes using Helm Charts And many more awesome technologies.
+- Attaching an EBS volume to our pod
+- Creating PVCs and PVs
