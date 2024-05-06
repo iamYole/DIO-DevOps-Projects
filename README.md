@@ -50,5 +50,5 @@
     We've already learnt about Containers and how to containerize applications.In this project, we will be introduced to the world of container orchestration Kubernetes. In the first part of this series, we will be looking at installing a kubernetes cluster from ground up
 25. Project 25 - [Container Orchestration with Kubernetes Part 2](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2025%20-%20Container%20Orchestration%20with%20Kuburnetes%20Part%202/README.md)  
     In the second part of this project, we will be looking at deploying applications to a kubernetes cluster.
-26. Project 26 - [Container Orchestration with Kubernetes Part 3]()  
+26. Project 26 - [Container Orchestration with Kubernetes Part 3](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2026%20-%20Container%20Orchestration%20with%20Kubernetes%20Part%203/README.md)  
     In the third part of this project, we will be looking at data persistence in Kubernetes.
