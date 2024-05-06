@@ -616,6 +616,7 @@ Restart the deployment using the command
 This will terminate the running pod and launch up a new one.
 
 ![alt text](Images/Img_27.png)
+
 Notice a new pod started and the old pod deleted
 
 The content in the browser remains unchanged despite restarting the deployment, which resulted in the termination of the previous pod and the creation of a new one.
