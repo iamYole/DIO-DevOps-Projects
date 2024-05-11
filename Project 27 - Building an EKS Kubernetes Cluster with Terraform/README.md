@@ -11,6 +11,8 @@ lets start by creating the K8r
 
 ## Building an EKS Cluster with Terraform
 
+The terraform codes can be accessed from this [repository](https://github.com/iamYole/Building-an-EKS-Cluster-with-Terraform).
+
 Before we begin, lets ensure we have access to an S3 Bucket to store the terraform state file
 
 - Create a home directory for this project
@@ -26,7 +28,7 @@ Before we begin, lets ensure we have access to an S3 Bucket to store the terrafo
   > description = "AWS tag to indicate environment name of each infrastructure object."
   > }
   > variable "name_prefix" {
-  > type        = string
+  > ype        = string
   > description = "Prefix to be used on each infrastructure object Name created in AWS."
   > }
   > variable "main_network_block" {
@@ -215,7 +217,6 @@ Before we begin, lets ensure we have access to an S3 Bucket to store the terrafo
   > instances_distribution = {
   > spot_instance_pools = 4
   > }
-  >
   > override = var.asg_instance_types
   > }
   > }
