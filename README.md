@@ -52,3 +52,5 @@
     In the second part of this project, we will be looking at deploying applications to a kubernetes cluster.
 26. Project 26 - [Container Orchestration with Kubernetes Part 3](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2026%20-%20Container%20Orchestration%20with%20Kubernetes%20Part%203/README.md)  
     In the third part of this project, we will be looking at data persistence in Kubernetes.
+27. Project 27 - [Building an EKS Kubernetes Cluster with Terraform](https://github.com/iamYole/DIO-DevOps-Projects/blob/main/Project%2027%20-%20Building%20an%20EKS%20Kubernetes%20Cluster%20with%20Terraform/README.md)
+    In the project project, we will be using Terraform and the official Terraform Module on EKS to spin up an EKS Cluster. We will also be looking at how to deploy applications on an EKS Cluster using Helm.

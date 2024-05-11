@@ -16,49 +16,49 @@ Before we begin, lets ensure we have access to an S3 Bucket to store the terrafo
 - Create a home directory for this project
 - Within the directory, create a file called `variables.tf` with the code below:
 
-  > ```json
+  > ```yaml
   > variable "cluster_name" {
-  >    type        = string
-  >    description = "EKS cluster name."
+  > type        = string
+  > description = "EKS cluster name."
   > }
   > variable "iac_environment_tag" {
-  >    type        = string
-  >    description = "AWS tag to indicate environment name of each infrastructure object."
+  > type        = string
+  > description = "AWS tag to indicate environment name of each infrastructure object."
   > }
   > variable "name_prefix" {
-  >    type        = string
-  >    description = "Prefix to be used on each infrastructure object Name created in AWS."
+  > type        = string
+  > description = "Prefix to be used on each infrastructure object Name created in AWS."
   > }
   > variable "main_network_block" {
-  >    type        = string
-  >    description = "Base CIDR block to be used in our VPC."
+  > type        = string
+  > description = "Base CIDR block to be used in our VPC."
   > }
   > variable "subnet_prefix_extension" {
-  >    type        = number
-  >    description = "CIDR block bits extension to calculate CIDR blocks of each subnetwork."
+  > type        = number
+  > description = "CIDR block bits extension to calculate CIDR blocks of each subnetwork."
   > }
   > variable "zone_offset" {
-  >    type        = number
-  >    description = "CIDR block bits extension offset to calculate Public subnets, avoiding collisions with Private subnets."
+  > type        = number
+  > description = "CIDR block bits extension offset to calculate Public subnets, avoiding collisions with Private subnets."
   > }
   > ```
 
 - Within the directory create a file `backend.tf` with the code below:
-  > ```json
+  > ```yaml
   > ## Configure S3 Backend
   > terraform {
-  >  backend "s3" {
-  >    bucket         = "ytech-terraform-state"
-  >    key            = "eks/s3/terraform.tfstate"
-  >    region         = "us-east-2"
-  >    encrypt        = true
-  >  }
+  > backend "s3" {
+  > bucket         = "ytech-terraform-state"
+  > key            = "eks/s3/terraform.tfstate"
+  > region         = "us-east-2"
+  > encrypt        = true
+  > }
   > }
   > ```
 - Create a file – network.tf and provision Elastic IP for Nat Gateway, VPC, Private and public subnets.  
   We be using the official AWS module to create the VPC.
 
-  > ```json
+  > ```yaml
   > # reserve Elastic IP to be used in our NAT gateway
   > resource "aws_eip" "nat_gw_elastic_ip" {
   >  domain   = "vpc"
@@ -132,7 +132,7 @@ Before we begin, lets ensure we have access to an S3 Bucket to store the terrafo
 
 - Create a file – data.tf – This will pull the available AZs for use.
 
-  > ```json
+  > ```yaml
   > # get all available AZs in the region
   > data "aws_availability_zones" "available_azs" {
   >    state = "available"
@@ -145,7 +145,7 @@ Before we begin, lets ensure we have access to an S3 Bucket to store the terrafo
 - Create the `main.tf` to provision the EKS cluster using the EKS Module.  
   Read more about this module from the official documentation [here](https://github.com/terraform-aws-modules/terraform-aws-eks)
 
-  > ```json
+  > ```yaml
   > module "eks_cluster" {
   >     source                          = "terraform-aws-modules/eks/aws"
   >     version                         = "~> 20.0"
@@ -183,72 +183,72 @@ Before we begin, lets ensure we have access to an S3 Bucket to store the terrafo
   > ```
 
 - Create a file – `locals.tf` to create local variables.
-  > ```json
+  > ```yaml
   > # render Admin & Developer users list with the structure required by EKS module
   > locals {
   >
-  >  self_managed_node_groups = {
-  >    worker_group1 = {
-  >      name = "${var.cluster_name}-worker-group"
+  > self_managed_node_groups = {
+  > worker_group1 = {
+  > name = "${var.cluster_name}-worker-group"
   >
-  >      min_size      = var.autoscaling_minimum_size_by_az * length(data.aws_availability_zones.available_azs.zone_ids)
-  >      desired_size      = var.autoscaling_minimum_size_by_az * length(data.aws_availability_zones.available_azs.zone_ids)
-  >      max_size  = var.autoscaling_maximum_size_by_az * length(data.aws_availability_zones.available_azs.zone_ids)
-  >      instance_type = var.asg_instance_types[0].instance_type
+  > min_size      = var.autoscaling_minimum_size_by_az * length(data.aws_availability_zones.available_azs.zone_ids)
+  > desired_size      = var.autoscaling_minimum_size_by_az * length(data.aws_availability_zones.available_azs.zone_ids)
+  > max_size  = var.autoscaling_maximum_size_by_az * length(data.aws_availability_zones.available_azs.zone_ids)
+  > instance_type = var.asg_instance_types[0].instance_type
   >
-  >      bootstrap_extra_args = "--kubelet-extra-args '--node-labels=node.kubernetes.io/lifecycle=spot'"
+  > bootstrap_extra_args = "--kubelet-extra-args '--node-labels=node.kubernetes.io/lifecycle=spot'"
   >
-  >      block_device_mappings = {
-  >        xvda = {
-  >          device_name = "/dev/xvda"
-  >          ebs = {
-  >            delete_on_termination = true
-  >            encrypted             = false
-  >            volume_size           = 10
-  >            volume_type           = "gp2"
-  >          }
-  >        }
-  >      }
+  > block_device_mappings = {
+  > xvda = {
+  > device_name = "/dev/xvda"
+  > ebs = {
+  > delete_on_termination = true
+  > encrypted             = false
+  > volume_size           = 10
+  > volume_type           = "gp2"
+  > }
+  > }
+  > }
   >
-  >      use_mixed_instances_policy = true
-  >      mixed_instances_policy = {
-  >        instances_distribution = {
-  >          spot_instance_pools = 4
-  >        }
+  > use_mixed_instances_policy = true
+  > mixed_instances_policy = {
+  > instances_distribution = {
+  > spot_instance_pools = 4
+  > }
   >
-  >        override = var.asg_instance_types
-  >      }
-  >    }
-  >  }
+  > override = var.asg_instance_types
+  > }
+  > }
+  > }
   > }
   > ```
 - Add more variables to the `variables.tf` file
 
-  > ```json
+  > ```yaml
   > variable "admin_users" {
-  >  type        = list(string)
-  >  description = "List of Kubernetes admins."
+  > type        = list(string)
+  > description = "List of Kubernetes admins."
   > }
   > variable "developer_users" {
-  >  type        = list(string)
-  >  description = "List of Kubernetes developers."
+  > type        = list(string)
+  > description = "List of Kubernetes developers."
   > }
   > variable "asg_instance_types" {
-  >  description = "List of EC2 instance machine types to be used in EKS."
+  > description = "List of EC2 instance machine types to be used in EKS."
   > }
   > variable "autoscaling_minimum_size_by_az" {
-  >  type        = number
-  >  description = "Minimum number of EC2 instances to autoscale our EKS cluster on each AZ."
+  > type        = number
+  > description = "Minimum number of EC2 instances to autoscale our EKS cluster on each AZ."
   > }
   > variable "autoscaling_maximum_size_by_az" {
-  >  type        = number
-  >  description = "Maximum number of EC2 instances to autoscale our EKS cluster on each AZ."
+  > type        = number
+  > description = "Maximum number of EC2 instances to autoscale our EKS cluster on each AZ."
   > }
   > ```
 
 - Create a file – `terraform.tfvars` to set values for variables.
 
-  > ```json
+  > ```yaml
   > cluster_name            = "demo-app-eks"
   > iac_environment_tag     = "development"
   > name_prefix             = "ytech"
@@ -262,17 +262,17 @@ Before we begin, lets ensure we have access to an S3 Bucket to store the terrafo
   > ```
 
 - Append the code below to the `data.tf` file
-  > ```json
+  > ```yaml
   > # get EKS cluster info to configure Kubernetes and Helm providers
   > data "aws_eks_cluster" "cluster" {
-  >  name = module.eks_cluster.cluster_id
+  > name = module.eks_cluster.cluster_id
   > }
   > data "aws_eks_cluster_auth" "cluster" {
-  >  name = module.eks_cluster.cluster_id
+  > name = module.eks_cluster.cluster_id
   > }
   > ```
 - Create a file – `provider.tf`
-  > ```json
+  > ```yaml
   > provider "aws" {
   >  region = "us-east-2"
   > }
